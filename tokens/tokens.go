@@ -27,6 +27,7 @@ const (
 	ParenClosed
 	Comma
 	Assignment
+	Boolean
 )
 
 const windowsLineSpererator = "\r\n"
@@ -122,7 +123,15 @@ func (C *CodeLexer) Lexer() ([]Token, error) {
 				i++
 			}
 			i--
-			C.append(Token{Identifier, buff.String(), 0, 0, line})
+			val := buff.String()
+			switch val {
+			case "true":
+				C.append(Token{Boolean, "true", 1, 0, line})
+			case "false":
+				C.append(Token{Boolean, "false", 0, 0, line})
+			default:
+				C.append(Token{Identifier, val, 0, 0, line})
+			}
 			continue
 		}
 

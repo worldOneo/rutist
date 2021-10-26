@@ -12,21 +12,27 @@ func init() {
 	builtins["print"] = Print
 }
 
-func Print(args []Value) Value {
+func Print(_ *Runtime, args []Value) (Value, error) {
 	values := GoTypes(args)
-	fmt.Printf(values[0].(string), values[1:]...)
-	return nil
+	str, ok := values[0].(string)
+	if !ok {
+		return nil, fmt.Errorf("Print: Parameter1 must be type string")
+	}
+	fmt.Printf(str, values[1:]...)
+	return nil, nil
 }
 
 func GoTypes(args []Value) []interface{} {
 	values := make([]interface{}, len(args))
 	for i, arg := range args {
 		switch value := arg.(type) {
-		case ast.ValueString:
+		case ast.String:
 			values[i] = value.Value
-		case ast.ValueFloat:
+		case ast.Float:
 			values[i] = value.Value
-		case ast.ValueInt:
+		case ast.Int:
+			values[i] = value.Value
+		case ast.Bool:
 			values[i] = value.Value
 		}
 	}

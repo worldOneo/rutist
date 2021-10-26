@@ -19,16 +19,36 @@ type Variable struct {
 	Name string
 }
 
-type ValueFloat struct {
+type String struct {
+	Value string
+}
+
+type Float struct {
 	Value float64
 }
 
-type ValueInt struct {
+type Int struct {
 	Value int
 }
 
-type ValueString struct {
-	Value string
+type Bool struct {
+	Value bool
+}
+
+func (B Bool) Bool() Bool {
+	return Bool{B.Value}
+}
+
+func (B Int) Bool() Bool {
+	return Bool{B.Value != 0}
+}
+
+func (B Float) Bool() Bool {
+	return Bool{B.Value != 0}
+}
+
+func (B String) Bool() Bool {
+	return Bool{B.Value != ""}
 }
 
 type Block struct {
@@ -37,7 +57,7 @@ type Block struct {
 
 type Assignment struct {
 	Identifier string
-	Value Node
+	Value      Node
 }
 
 type Expression struct {
@@ -145,13 +165,15 @@ func (P *Parser) pullValue() (Node, error) {
 			}
 			return Assignment{next.Content, node}, nil
 		}
-		return Variable{next.Content}, nil
+		return String{next.Content}, nil
 	case tokens.Float:
-		return ValueFloat{next.ValueFloat}, nil
+		return Float{next.ValueFloat}, nil
 	case tokens.Integer:
-		return ValueInt{next.ValueInt}, nil
+		return Int{next.ValueInt}, nil
 	case tokens.String:
-		return ValueString{next.Content}, nil
+		return String{next.Content}, nil
+	case tokens.Boolean:
+		return Bool{next.ValueInt == 1}, nil
 	}
 	return nil, fmt.Errorf("Identifier Expected")
 }

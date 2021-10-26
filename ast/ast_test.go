@@ -25,10 +25,10 @@ func TestParse(t *testing.T) {
 			Block{
 				Body: []Node{
 					Expression{"route", []Node{
-						ValueString{"/test/"},
+						String{"/test/"},
 						Expression{"yeet", []Node{
-							ValueString{"me"},
-							ValueString{"out"}},
+							String{"me"},
+							String{"out"}},
 						},
 					},
 					},
@@ -40,10 +40,26 @@ func TestParse(t *testing.T) {
 			"assignment",
 			args{lexed: tokens.Lexerp(`
 			test = 100
+			test = 100.5
 			`)},
 			Block{
 				Body: []Node{
-					Assignment{"test", ValueInt{100}},
+					Assignment{"test", Int{100}},
+					Assignment{"test", Float{100.5}},
+				},
+			},
+			false,
+		},
+		{
+			"assignment bool",
+			args{lexed: tokens.Lexerp(`
+			test = true
+			test = false
+			`)},
+			Block{
+				Body: []Node{
+					Assignment{"test", Bool{true}},
+					Assignment{"test", Bool{false}},
 				},
 			},
 			false,

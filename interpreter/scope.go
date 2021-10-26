@@ -2,7 +2,7 @@ package interpreter
 
 type Value interface{}
 
-type Function func([]Value) Value
+type Function func(*Runtime, []Value) (Value, error)
 
 type Scope struct {
 	variables map[string]Value

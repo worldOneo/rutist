@@ -50,7 +50,7 @@ func (R *Runtime) Run(program ast.Node) (Value, error) {
 			}
 			args = append(args, v)
 		}
-		return R.CallFunction(function, args), nil
+		return R.CallFunction(function, args)
 	case ast.Assignment:
 		val, err := R.Run(node.Value)
 		if err != nil {
@@ -59,7 +59,7 @@ func (R *Runtime) Run(program ast.Node) (Value, error) {
 		R.CurrentScope().variables[node.Identifier] = val
 	case ast.Variable:
 		return R.CurrentScope().variables[node.Name], nil
-	case ast.ValueFloat, ast.ValueInt, ast.ValueString:
+	case ast.Float, ast.Int, ast.Bool, ast.String:
 		return node, nil
 	}
 	return nil, nil
@@ -69,13 +69,13 @@ func (R *Runtime) CurrentScope() *Scope {
 	return R.Scopes[R.ScopeIndex]
 }
 
-func (R *Runtime) CallFunction(function Function, args []Value) Value {
+func (R *Runtime) CallFunction(function Function, args []Value) (Value, error) {
 	R.ScopeIndex++
 	if R.ScopeIndex >= len(R.Scopes) {
 		R.Scopes = append(R.Scopes, NewScope())
 	}
 	R.Scopes[R.ScopeIndex] = NewScope()
-	val := function(args)
+	val, err := function(R, args)
 	R.ScopeIndex--
-	return val
+	return val, err
 }
