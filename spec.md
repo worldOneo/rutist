@@ -1,10 +1,10 @@
 # Spec for the Rutist language
 
-Scope name:
+Scopes:
 ```
-name {
-  
-}
+name(@{
+
+})
 ```
 
 Comments:

@@ -28,6 +28,7 @@ const (
 	Comma
 	Assignment
 	Boolean
+	Scoper
 )
 
 const windowsLineSpererator = "\r\n"
@@ -112,6 +113,8 @@ func (C *CodeLexer) Lexer() ([]Token, error) {
 				C.append(Token{Comma, ",", 0, 0, line})
 			case '=':
 				C.append(Token{Assignment, "=", 0, 0, line})
+			case '@':
+				C.append(Token{Scoper, "@", 0, 0, line})
 			}
 			continue
 		}
@@ -194,7 +197,6 @@ func (C *CodeLexer) Lexer() ([]Token, error) {
 			C.append(floatToken(str, floatVal, line))
 			continue
 		}
-
 	}
 	return C.words, nil
 }
@@ -208,7 +210,7 @@ func isAlpha(b rune) bool {
 }
 
 func isDigit(b rune) bool {
-	return !isSpecialChar(b) && !isSpace(b) && b >= '0' && b <= '9'
+	return b >= '0' && b <= '9'
 }
 
 func isStringBegin(b rune) bool {
@@ -216,7 +218,7 @@ func isStringBegin(b rune) bool {
 }
 
 func isSpecialChar(b rune) bool {
-	return b == '{' || b == '}' || b == '(' || b == ')' || b == ',' || isEqual(b)
+	return b == '{' || b == '}' || b == '(' || b == ')' || b == ',' || isEqual(b) || isScoper(b)
 }
 
 func isSpace(b rune) bool {
@@ -239,6 +241,10 @@ func isEqual(b rune) bool {
 	return b == '='
 }
 
+func isScoper(b rune) bool {
+	return b == '@'
+}
+
 func getEscapedCharacter(b rune) rune {
 	switch b {
 	case 't':
@@ -259,7 +265,7 @@ func scopeOpenToken(line int) Token {
 }
 
 func scopeClosedToken(line int) Token {
-	return Token{ScopeOpen, "}", 0, 0, line}
+	return Token{ScopeClosed, "}", 0, 0, line}
 }
 
 func intToken(str string, val int, line int) Token {

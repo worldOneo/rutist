@@ -55,6 +55,10 @@ type Block struct {
 	Body []Node
 }
 
+type Scope struct {
+	Body Node
+}
+
 type Assignment struct {
 	Identifier string
 	Value      Node
@@ -79,12 +83,26 @@ func Parse(lexed []tokens.Token) (Node, error) {
 	return parser.parse()
 }
 
-func (p *Parser) parse() (Node, error) {
+func (P *Parser) parse() (Node, error) {
 	l := 64
 	body := make([]Node, l)
 	bindex := 0
-	for p.index < len(p.tokens) {
-		node, err := p.pullValue()
+	peek, peeked := P.peek()
+	returnOnScopeClose := peeked && peek.Type == tokens.ScopeOpen
+
+	if returnOnScopeClose {
+		P.next()
+	}
+
+	for P.index < len(P.tokens) {
+		if returnOnScopeClose {
+			peek, peeked = P.peek()
+			if peeked && peek.Type == tokens.ScopeClosed {
+				P.next()
+				break
+			}
+		}
+		node, err := P.pullValue()
 		if err != nil {
 			return nil, err
 		}
@@ -146,6 +164,14 @@ func (P *Parser) pullValue() (Node, error) {
 
 	peek, _ := P.peek()
 	switch next.Type {
+	case tokens.Scoper:
+		if peek.Type == tokens.ScopeOpen {
+			b, err := P.parse()
+			if err != nil {
+				return nil, err
+			}
+			return Scope{b}, nil
+		}
 	case tokens.Identifier:
 		if peek.Type == tokens.ParenOpen {
 			P.next()
@@ -154,9 +180,6 @@ func (P *Parser) pullValue() (Node, error) {
 				return nil, err
 			}
 			return Expression{next.Content, args}, nil
-		} else if peek.Type == tokens.ScopeOpen {
-			P.next()
-			return P.parse()
 		} else if peek.Type == tokens.Assignment {
 			P.next()
 			node, err := P.pullValue()
@@ -165,7 +188,7 @@ func (P *Parser) pullValue() (Node, error) {
 			}
 			return Assignment{next.Content, node}, nil
 		}
-		return String{next.Content}, nil
+		return Variable{next.Content}, nil
 	case tokens.Float:
 		return Float{next.ValueFloat}, nil
 	case tokens.Integer:
