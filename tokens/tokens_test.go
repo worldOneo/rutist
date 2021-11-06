@@ -46,6 +46,14 @@ func TestCodeLexer_Lexer(t *testing.T) {
 			},
 			false,
 		},
+		{
+			"dot member separator",
+			`var.member("call")`,
+			[]Token{
+				identifierToken("var", 0), {Dot, ".", 0, 0, 0}, identifierToken("member", 0), {ParenOpen, "(", 0, 0, 0}, stringToken("call", 0), {ParenClosed, ")", 0, 0, 0},
+			},
+			false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

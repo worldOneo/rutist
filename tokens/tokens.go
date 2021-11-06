@@ -29,6 +29,7 @@ const (
 	Assignment
 	Boolean
 	Scoper
+	Dot
 )
 
 const windowsLineSpererator = "\r\n"
@@ -43,7 +44,7 @@ type CodeLexer struct {
 func (C *CodeLexer) append(word Token) {
 	C.words[C.currentWord] = word
 	C.currentWord++
-	if C.currentWord > len(C.words) {
+	if C.currentWord >= len(C.words) {
 		old := C.words
 		C.words = make([]Token, len(C.words)*2)
 		copy(C.words, old)
@@ -115,6 +116,8 @@ func (C *CodeLexer) Lexer() ([]Token, error) {
 				C.append(Token{Assignment, "=", 0, 0, line})
 			case '@':
 				C.append(Token{Scoper, "@", 0, 0, line})
+			case '.':
+				C.append(Token{Dot, ".", 0, 0, line})
 			}
 			continue
 		}
@@ -221,7 +224,10 @@ func isStringBegin(b rune) bool {
 }
 
 func isSpecialChar(b rune) bool {
-	return b == '{' || b == '}' || b == '(' || b == ')' || b == ',' || isEqual(b) || isScoper(b)
+	return b == '{' || b == '}' ||
+		b == '(' || b == ')' ||
+		b == ',' || b == '.' ||
+		isEqual(b) || isScoper(b)
 }
 
 func isSpace(b rune) bool {

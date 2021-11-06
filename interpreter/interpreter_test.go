@@ -19,6 +19,17 @@ func TestRun_Status(t *testing.T) {
 		wantErr bool
 	}{
 		{
+			"Invoke",
+			args{
+				ast: ast.Parsep(tokens.Lexerp(`
+					print("test")
+				`)),
+			},
+			func(r *Runtime) bool {
+				return true
+			},
+			false,
+		}, {
 			"TryCatch",
 			args{
 				ast: ast.Parsep(tokens.Lexerp(`

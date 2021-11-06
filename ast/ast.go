@@ -60,13 +60,18 @@ type Scope struct {
 }
 
 type Assignment struct {
-	Identifier string
+	Identifier Node
 	Value      Node
 }
 
 type Expression struct {
+	Callee  Node
+	ArgList []Node
+}
+
+type MemberSelector struct {
 	Identifier string
-	ArgList    []Node
+	Property   Node
 }
 
 type Program = Block
@@ -186,20 +191,29 @@ func (P *Parser) pullValue() (Node, error) {
 			return Scope{b}, nil
 		}
 	case tokens.Identifier:
-		if peek.Type == tokens.ParenOpen {
+		identifier, err := P.parseIdentifier(next)
+		if err != nil {
+			return nil, err
+		}
+		peek, peeked := P.peek()
+		if !peeked {
+			return identifier, nil
+		}
+		switch peek.Type {
+		case tokens.ParenOpen:
 			P.next()
 			args, err := P.argList()
 			if err != nil {
 				return nil, err
 			}
-			return Expression{next.Content, args}, nil
-		} else if peek.Type == tokens.Assignment {
+			return Expression{identifier, args}, nil
+		case tokens.Assignment:
 			P.next()
 			node, err := P.pullValue()
 			if err != nil {
 				return nil, err
 			}
-			return Assignment{next.Content, node}, nil
+			return Assignment{identifier, node}, nil
 		}
 		return Variable{next.Content}, nil
 	case tokens.Float:
@@ -212,4 +226,25 @@ func (P *Parser) pullValue() (Node, error) {
 		return Bool{next.ValueInt == 1}, nil
 	}
 	return nil, fmt.Errorf("Identifier Expected")
+}
+
+func (P *Parser) parseIdentifier(last tokens.Token) (Node, error) {
+	peek, peeked := P.peek()
+	if !peeked {
+		return Variable{last.Content}, nil
+	}
+	switch peek.Type {
+	case tokens.Dot:
+		P.next()
+		current, has := P.next()
+		if !has {
+			return nil, fmt.Errorf("Identifier expected")
+		}
+		node, err := P.parseIdentifier(current)
+		if err != nil {
+			return nil, err
+		}
+		return MemberSelector{last.Content, node}, nil
+	}
+	return Variable{last.Content}, nil
 }

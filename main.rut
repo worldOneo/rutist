@@ -1,7 +1,26 @@
-print("Test %f\n", 10.5)
+varInt = 10
+print("Test %d\n", varInt)
+
+varString = "test"
+print("Strings: %s\n", varString)
+
+varBool = true
+print("Booleans: %t\n", varBool)
+
+varFloat = 10.5
+print("Floats %f\n", varFloat)
+
 
 try(@{
-  throw("Reasons")
+  throw("Error handling")
 }, @{
-  print("Error: %s", err)
+  print("Error: %s\n", err)
 })
+
+err = try(@{
+  throw("Reasons!")
+})
+
+print("Different Error handling: %s\n", err)
+
+print("varString len: %d\n", varString.len())

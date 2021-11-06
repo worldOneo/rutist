@@ -15,6 +15,10 @@ type Scoope struct {
 	node ast.Scope
 }
 
+const (
+	TypeRun = "__run__"
+)
+
 func (S String) Members() map[string]Value {
 	return map[string]Value{
 		"len": Function(S.len),
@@ -26,7 +30,9 @@ func (S String) len(_ *Runtime, _ []Value) (Value, *Error) {
 }
 
 func (F Function) Members() map[string]Value {
-	return map[string]Value{}
+	return map[string]Value{
+		TypeRun: F,
+	}
 }
 
 func (I Int) Members() map[string]Value {

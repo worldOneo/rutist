@@ -6,5 +6,4 @@ type Value interface {
 
 type Scope struct {
 	variables map[string]Value
-	functions map[string]Function
 }

@@ -24,9 +24,9 @@ func TestParse(t *testing.T) {
 			`)},
 			Block{
 				Body: []Node{
-					Expression{"route", []Node{
+					Expression{Variable{"route"}, []Node{
 						String{"/test/"},
-						Expression{"yeet", []Node{
+						Expression{Variable{"yeet"}, []Node{
 							String{"me"},
 							String{"out"}},
 						},
@@ -44,8 +44,8 @@ func TestParse(t *testing.T) {
 			`)},
 			Block{
 				Body: []Node{
-					Assignment{"test", Int{100}},
-					Assignment{"test", Float{100.5}},
+					Assignment{Variable{"test"}, Int{100}},
+					Assignment{Variable{"test"}, Float{100.5}},
 				},
 			},
 			false,
@@ -58,8 +58,8 @@ func TestParse(t *testing.T) {
 			`)},
 			Block{
 				Body: []Node{
-					Assignment{"test", Bool{true}},
-					Assignment{"test", Bool{false}},
+					Assignment{Variable{"test"}, Bool{true}},
+					Assignment{Variable{"test"}, Bool{false}},
 				},
 			},
 			false,
@@ -75,9 +75,9 @@ func TestParse(t *testing.T) {
 			`)},
 			Block{
 				Body: []Node{
-					Expression{"try", []Node{
+					Expression{Variable{"try"}, []Node{
 						Scope{Block{[]Node{
-							Expression{"print", []Node{Variable{"test"}}},
+							Expression{Variable{"print"}, []Node{Variable{"test"}}},
 						}}},
 						Scope{Block{[]Node{}}},
 					}},
@@ -94,11 +94,23 @@ func TestParse(t *testing.T) {
 			Block{
 				[]Node{
 					Assignment{
-						"err",
-						Expression{"try", []Node{Scope{Block{[]Node{
-							Expression{"print", []Node{Int{1}}},
+						Variable{"err"},
+						Expression{Variable{"try"}, []Node{Scope{Block{[]Node{
+							Expression{Variable{"print"}, []Node{Int{1}}},
 						}}}}},
 					},
+				},
+			},
+			false,
+		},
+		{
+			"member call",
+			args{tokens.Lexerp(`
+			var.member()
+			`)},
+			Block{
+				[]Node{
+					Expression{MemberSelector{"var", Variable{"member"}}, []Node{}},
 				},
 			},
 			false,

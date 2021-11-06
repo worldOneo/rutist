@@ -43,28 +43,14 @@ func (R *Runtime) Run(program ast.Node) (Value, *Error) {
 			}
 		}
 	case ast.Expression:
-		function, ok := R.CurrentScope().functions[node.Identifier]
-		if !ok {
-			function, ok = builtins[node.Identifier]
-			if !ok {
-				return nil, &Error{fmt.Errorf("Function %s doesnt exist ", node.Identifier)}
-			}
-		}
-		args := make([]Value, 0)
-		for _, arg := range node.ArgList {
-			v, err := R.Run(arg)
-			if err != nil {
-				return nil, err
-			}
-			args = append(args, v)
-		}
-		return R.CallFunction(function, args)
+		return R.RunExpression(nil, node)
 	case ast.Assignment:
 		val, err := R.Run(node.Value)
 		if err != nil {
 			return nil, err
 		}
-		R.CurrentScope().variables[node.Identifier] = val
+		v := node.Identifier.(ast.Variable)
+		R.CurrentScope().variables[v.Name] = val
 	case ast.Variable:
 		return R.CurrentScope().variables[node.Name], nil
 	case ast.Float:
@@ -86,7 +72,10 @@ const null = Int(0)
 func (R *Runtime) GetVar(name string) Value {
 	v, ok := R.CurrentScope().variables[name]
 	if !ok {
-		return null
+		v, ok = builtins[name]
+		if !ok {
+			return null
+		}
 	}
 	return v
 }
@@ -104,4 +93,59 @@ func (R *Runtime) CallFunction(function Function, args []Value) (Value, *Error) 
 	val, err := function(R, args)
 	R.ScopeIndex--
 	return val, err
+}
+
+func (R *Runtime) GetMember(v Value, property ast.Node) (Value, *Error) {
+	if v == nil {
+		return nil, &Error{fmt.Errorf("Member: variable is nil")}
+	}
+	switch prop := property.(type) {
+	case ast.Variable:
+		member, ok := v.Members()[prop.Name]
+		if !ok {
+			return nil, &Error{fmt.Errorf("Member: member %s doesnt exist", property)}
+		}
+		return member, nil
+	case ast.MemberSelector:
+		member, ok := v.Members()[prop.Identifier]
+		if !ok {
+			return nil, &Error{fmt.Errorf("Member: member %s doesnt exist", property)}
+		}
+		return R.GetMember(member, prop.Property)
+	}
+	return nil, &Error{fmt.Errorf("Invalid property")}
+}
+
+func (R *Runtime) RunExpression(v Value, node ast.Expression) (Value, *Error) {
+	if v == nil {
+		switch callee := node.Callee.(type) {
+		case ast.Variable:
+			return R.RunExpression(R.GetVar(callee.Name), node)
+		case ast.MemberSelector:
+			member, err := R.GetMember(R.GetVar(callee.Identifier), callee.Property)
+			if err != nil {
+				return nil, err
+			}
+			return R.RunExpression(member, node)
+		}
+	}
+
+	run, ok := v.Members()[TypeRun]
+	if !ok {
+		return nil, &Error{fmt.Errorf("Invalid invocation")}
+	}
+	fun, ok := run.(Function)
+	if !ok {
+		return nil, &Error{fmt.Errorf("Invalid invocation")}
+	}
+
+	args := make([]Value, 0)
+	for _, arg := range node.ArgList {
+		v, err := R.Run(arg)
+		if err != nil {
+			return nil, err
+		}
+		args = append(args, v)
+	}
+	return R.CallFunction(fun, args)
 }
