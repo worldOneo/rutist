@@ -19,8 +19,30 @@ func TestCodeLexer_Lexer(t *testing.T) {
 			}`,
 			[]Token{
 				identifierToken("scope", 0), scopeOpenToken(0),
-				identifierToken("print", 1), {ParenOpen, "(", 0,0,1}, stringToken("test", 1), {ParenClosed, ")", 0,0,1},
+				identifierToken("print", 1), {ParenOpen, "(", 0, 0, 1}, stringToken("test", 1), {ParenClosed, ")", 0, 0, 1},
 				scopeClosedToken(2),
+			},
+			false,
+		},
+		{
+			"single arg int",
+			`@{
+				print(1)
+			}`,
+			[]Token{
+				{Scoper, "@", 0, 0, 0}, scopeOpenToken(0),
+				identifierToken("print", 1), {ParenOpen, "(", 0, 0, 1}, intToken("1", 1, 1), {ParenClosed, ")", 0, 0, 1},
+				scopeClosedToken(2),
+			},
+			false,
+		},
+		{
+			"special char string",
+			`
+			print("Test\\\n")
+			`,
+			[]Token{
+				identifierToken("print", 1), {ParenOpen, "(", 0, 0, 1}, stringToken("Test\\\n", 1), {ParenClosed, ")", 0, 0, 1},
 			},
 			false,
 		},

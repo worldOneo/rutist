@@ -76,6 +76,14 @@ type Parser struct {
 	index  int
 }
 
+func Parsep(lexed []tokens.Token) Node {
+	val, err := Parse(lexed)
+	if err != nil {
+		panic(err)
+	}
+	return val
+}
+
 func Parse(lexed []tokens.Token) (Node, error) {
 	parser := Parser{
 		tokens: lexed,
@@ -142,8 +150,13 @@ func (P *Parser) argList() ([]Node, error) {
 			requiresComma = false
 			P.next()
 			continue
-		} else if requiresComma || peek.Type == tokens.Comma {
-			return nil, fmt.Errorf("unexpected comma")
+		} else if requiresComma {
+			if peek.Type == tokens.ParenClosed {
+				return args, nil
+			}
+			return nil, fmt.Errorf("expected comma line %d", peek.Line)
+		} else if peek.Type == tokens.Comma {
+			return nil, fmt.Errorf("Unexpected comma line %d", peek.Line)
 		}
 		arg, err := P.pullValue()
 		requiresComma = true

@@ -13,19 +13,27 @@ type Runtime struct {
 
 func Run(ast ast.Node) (Value, error) {
 	runtime := Runtime{
-		[]*Scope{NewScope()},
+		[]*Scope{NewScope(map[string]Value{})},
 		0,
 	}
-	return runtime.Run(ast)
+	val, err := runtime.Run(ast)
+	if err == nil {
+		return val, nil
+	}
+	return val, err.Err
 }
 
-func NewScope() *Scope {
-	return &Scope{
+func NewScope(capture map[string]Value) *Scope {
+	scope := &Scope{
 		variables: map[string]Value{},
 	}
+	for k, v := range capture {
+		scope.variables[k] = v
+	}
+	return scope
 }
 
-func (R *Runtime) Run(program ast.Node) (Value, error) {
+func (R *Runtime) Run(program ast.Node) (Value, *Error) {
 	switch node := program.(type) {
 	case ast.Block:
 		for i := 0; i < len(node.Body); i++ {
@@ -39,7 +47,7 @@ func (R *Runtime) Run(program ast.Node) (Value, error) {
 		if !ok {
 			function, ok = builtins[node.Identifier]
 			if !ok {
-				return nil, fmt.Errorf("Function %s doesnt exist ", node.Identifier)
+				return nil, &Error{fmt.Errorf("Function %s doesnt exist ", node.Identifier)}
 			}
 		}
 		args := make([]Value, 0)
@@ -59,22 +67,40 @@ func (R *Runtime) Run(program ast.Node) (Value, error) {
 		R.CurrentScope().variables[node.Identifier] = val
 	case ast.Variable:
 		return R.CurrentScope().variables[node.Name], nil
-	case ast.Float, ast.Int, ast.Bool, ast.String:
-		return node, nil
+	case ast.Float:
+		return Float(node.Value), nil
+	case ast.Int:
+		return Int(node.Value), nil
+	case ast.Bool:
+		return Bool(node.Value), nil
+	case ast.String:
+		return String(node.Value), nil
+	case ast.Scope:
+		return &Scoope{node}, nil
 	}
 	return nil, nil
+}
+
+const null = Int(0)
+
+func (R *Runtime) GetVar(name string) Value {
+	v, ok := R.CurrentScope().variables[name]
+	if !ok {
+		return null
+	}
+	return v
 }
 
 func (R *Runtime) CurrentScope() *Scope {
 	return R.Scopes[R.ScopeIndex]
 }
 
-func (R *Runtime) CallFunction(function Function, args []Value) (Value, error) {
+func (R *Runtime) CallFunction(function Function, args []Value) (Value, *Error) {
 	R.ScopeIndex++
 	if R.ScopeIndex >= len(R.Scopes) {
-		R.Scopes = append(R.Scopes, NewScope())
+		R.Scopes = append(R.Scopes, nil)
 	}
-	R.Scopes[R.ScopeIndex] = NewScope()
+	R.Scopes[R.ScopeIndex] = NewScope(R.Scopes[R.ScopeIndex-1].variables)
 	val, err := function(R, args)
 	R.ScopeIndex--
 	return val, err

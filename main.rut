@@ -1,1 +1,7 @@
-print("Test %f", 10.5)
+print("Test %f\n", 10.5)
+
+try(@{
+  throw("Reasons")
+}, @{
+  print("Error: %s", err)
+})

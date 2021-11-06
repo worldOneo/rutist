@@ -1,8 +1,8 @@
 package interpreter
 
-type Value interface{}
-
-type Function func(*Runtime, []Value) (Value, error)
+type Value interface {
+	Members() map[string]Value
+}
 
 type Scope struct {
 	variables map[string]Value

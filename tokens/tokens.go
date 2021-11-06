@@ -150,10 +150,12 @@ func (C *CodeLexer) Lexer() ([]Token, error) {
 				if escaped {
 					buff.WriteRune(getEscapedCharacter(c))
 					escaped = false
+					i++
 					continue
 				}
 				if isEscapeChar(c) {
 					escaped = true
+					i++
 					continue
 				}
 				buff.WriteRune(c)
@@ -181,6 +183,7 @@ func (C *CodeLexer) Lexer() ([]Token, error) {
 				i++
 				c = C.code[i]
 			}
+			i--
 			str := buff.String()
 			if !float {
 				intVal, err := strconv.Atoi(str)
@@ -192,7 +195,7 @@ func (C *CodeLexer) Lexer() ([]Token, error) {
 			}
 			floatVal, err := strconv.ParseFloat(str, 64)
 			if err != nil {
-				return []Token{}, fmt.Errorf("Unparseble int literal")
+				return []Token{}, fmt.Errorf("Unparseble float literal")
 			}
 			C.append(floatToken(str, floatVal, line))
 			continue

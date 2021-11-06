@@ -85,6 +85,24 @@ func TestParse(t *testing.T) {
 			},
 			false,
 		},
+		{
+			"return assign",
+			args{tokens.Lexerp(`
+			err = try(@{
+				print(1)
+			})`)},
+			Block{
+				[]Node{
+					Assignment{
+						"err",
+						Expression{"try", []Node{Scope{Block{[]Node{
+							Expression{"print", []Node{Int{1}}},
+						}}}}},
+					},
+				},
+			},
+			false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
