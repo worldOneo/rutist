@@ -63,6 +63,8 @@ func (R *Runtime) Run(program ast.Node) (Value, *Error) {
 		return String(node.Value), nil
 	case ast.Scope:
 		return &Scoope{node}, nil
+	case ast.FunctionDefinition:
+		return &FuncDef{node.ArgList, node.Scope}, nil
 	case ast.MemberSelector:
 		v, err := R.Run(node.Object)
 		if err != nil {

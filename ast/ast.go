@@ -34,23 +34,6 @@ type Int struct {
 type Bool struct {
 	Value bool
 }
-
-func (B Bool) Bool() Bool {
-	return Bool{B.Value}
-}
-
-func (B Int) Bool() Bool {
-	return Bool{B.Value != 0}
-}
-
-func (B Float) Bool() Bool {
-	return Bool{B.Value != 0}
-}
-
-func (B String) Bool() Bool {
-	return Bool{B.Value != ""}
-}
-
 type Block struct {
 	Body []Node
 }
@@ -67,6 +50,11 @@ type Assignment struct {
 type Expression struct {
 	Callee  Node
 	ArgList []Node
+}
+
+type FunctionDefinition struct {
+	Scope   Node
+	ArgList []Identifier
 }
 
 type MemberSelector struct {
@@ -163,7 +151,7 @@ func (P *Parser) next() (tokens.Token, bool) {
 	return tokens.Token{}, false
 }
 
-func (P *Parser) argList() ([]Node, error) {
+func (P *Parser) argList(identifierOnly bool) ([]Node, error) {
 	args := make([]Node, 0)
 	requiresComma := false
 
@@ -214,6 +202,25 @@ func (P *Parser) _pullValue() (Node, error) {
 				return nil, err
 			}
 			return Scope{b}, nil
+		} else if peek.Type == tokens.ParenOpen {
+			P.next()
+			args, err := P.argList(true)
+			if err != nil {
+				return nil, err
+			}
+			arglist := make([]Identifier, len(args))
+			for i := 0; i < len(args); i++ {
+				arg, ok := args[i].(Identifier)
+				if !ok {
+					return nil, fmt.Errorf("Identifier expected line: %d", peek.Line)
+				}
+				arglist[i] = arg
+			}
+			b, err := P.parse()
+			if err != nil {
+				return nil, err
+			}
+			return FunctionDefinition{b, arglist}, nil
 		}
 	case tokens.Identifier:
 		identifier, err := P.parseIdentifier(next)
@@ -227,7 +234,7 @@ func (P *Parser) _pullValue() (Node, error) {
 		switch peek.Type {
 		case tokens.ParenOpen:
 			P.next()
-			args, err := P.argList()
+			args, err := P.argList(false)
 			if err != nil {
 				return nil, err
 			}

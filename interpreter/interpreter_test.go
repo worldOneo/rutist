@@ -2,6 +2,7 @@ package interpreter
 
 import (
 	"fmt"
+	"reflect"
 	"testing"
 
 	"github.com/worldOneo/rutist/ast"
@@ -72,6 +73,26 @@ func TestRun_Status(t *testing.T) {
 			func(r *Runtime) bool {
 				v, ok := r.CurrentScope().variables["l"]
 				return ok && v == Int(4)
+			},
+			false,
+		},
+		{
+			"function definition",
+			args{ast.Parsep(tokens.Lexerp(`
+				handle=@(err){
+					print("Err: %s", err)
+				}
+			`))},
+			func(r *Runtime) bool {
+				handle, ok := r.CurrentScope().variables["handle"]
+				if !ok {
+					return false
+				}
+				h, o := handle.(*FuncDef)
+				if !o {
+					return false
+				}
+				return reflect.DeepEqual(h.args, []ast.Identifier{{"err"}})
 			},
 			false,
 		},

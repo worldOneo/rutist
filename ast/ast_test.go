@@ -135,6 +135,27 @@ func TestParse(t *testing.T) {
 			},
 			false,
 		},
+		{
+			"function definition",
+			args{tokens.Lexerp(`
+				handle=@(err){
+					print("Err: %s", err)
+				}
+			`)},
+			Block{
+				[]Node{
+					Assignment{
+						Identifier{"handle"},
+						FunctionDefinition{Block{
+							[]Node{
+								Expression{Identifier{"print"}, []Node{String{"Err: %s"}, Identifier{"err"}}},
+							},
+						}, []Identifier{{"err"}}},
+					},
+				},
+			},
+			false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

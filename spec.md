@@ -29,3 +29,10 @@ int
 float
 bool
 ```
+
+Function definition
+```
+myFunction = @(arg1, arg2){
+
+}
+```

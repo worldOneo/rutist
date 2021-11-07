@@ -1,7 +1,9 @@
 package interpreter
 
+type MemberDict = map[string]Value
+
 type Value interface {
-	Members() map[string]Value
+	Members() MemberDict
 }
 
 type Scope struct {

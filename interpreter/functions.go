@@ -49,7 +49,7 @@ func builtinThrow(_ *Runtime, args []Value) (Value, *Error) {
 	return nil, &Error{fmt.Errorf("%v", arg[0])}
 }
 
-func builtinTrycatch(R *Runtime, args []Value) (Value, *Error) {
+func builtinTrycatch(r *Runtime, args []Value) (Value, *Error) {
 	if len(args) == 0 {
 		return nil, nil
 	}
@@ -60,20 +60,19 @@ func builtinTrycatch(R *Runtime, args []Value) (Value, *Error) {
 	}
 
 	if len(args) == 1 {
-		_, err := builtinRun(R, []Value{try})
+		_, err := builtinRun(r, []Value{try})
 		if err != nil {
 			return err, nil
 		}
 		return nil, nil
 	}
-	catch, ok := args[1].(*Scoope)
+	catch, ok := args[1].(*FuncDef)
 	if !ok {
-		return nil, &Error{fmt.Errorf("Try-Catch: Parameter2 must be type scope")}
+		return nil, &Error{fmt.Errorf("Try-Catch: Parameter2 must be type funcdef")}
 	}
-	_, err := builtinRun(R, []Value{try})
+	_, err := builtinRun(r, []Value{try})
 	if err != nil {
-		R.CurrentScope().variables["err"] = err
-		return builtinRun(R, []Value{catch})
+		return catch.run(r, []Value{err})
 	}
 	return nil, nil
 }
