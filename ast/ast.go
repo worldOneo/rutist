@@ -15,7 +15,7 @@ const (
 
 type Node interface{}
 
-type Variable struct {
+type Identifier struct {
 	Name string
 }
 
@@ -70,8 +70,8 @@ type Expression struct {
 }
 
 type MemberSelector struct {
-	Identifier string
-	Property   Node
+	Object   Node
+	Property Node
 }
 
 type Program = Block
@@ -131,6 +131,23 @@ func (P *Parser) parse() (Node, error) {
 	return Block{body[0:bindex]}, nil
 }
 
+func (P *Parser) checkAppendage(prev Node) (Node, error) {
+	peek, peeked := P.peek()
+	if !peeked {
+		return prev, nil
+	}
+	switch peek.Type {
+	case tokens.Dot:
+		P.next()
+		val, err := P.pullValue()
+		if err != nil {
+			return nil, err
+		}
+		return P.checkAppendage(MemberSelector{prev, val})
+	}
+	return prev, nil
+}
+
 func (P *Parser) peek() (tokens.Token, bool) {
 	if P.index < len(P.tokens) {
 		return P.tokens[P.index], true
@@ -175,6 +192,14 @@ func (P *Parser) argList() ([]Node, error) {
 }
 
 func (P *Parser) pullValue() (Node, error) {
+	v, err := P._pullValue()
+	if err != nil {
+		return nil, err
+	}
+	return P.checkAppendage(v)
+}
+
+func (P *Parser) _pullValue() (Node, error) {
 	next, has := P.next()
 	if !has {
 		return nil, fmt.Errorf("Expected value")
@@ -215,7 +240,7 @@ func (P *Parser) pullValue() (Node, error) {
 			}
 			return Assignment{identifier, node}, nil
 		}
-		return Variable{next.Content}, nil
+		return Identifier{next.Content}, nil
 	case tokens.Float:
 		return Float{next.ValueFloat}, nil
 	case tokens.Integer:
@@ -231,7 +256,7 @@ func (P *Parser) pullValue() (Node, error) {
 func (P *Parser) parseIdentifier(last tokens.Token) (Node, error) {
 	peek, peeked := P.peek()
 	if !peeked {
-		return Variable{last.Content}, nil
+		return Identifier{last.Content}, nil
 	}
 	switch peek.Type {
 	case tokens.Dot:
@@ -244,7 +269,7 @@ func (P *Parser) parseIdentifier(last tokens.Token) (Node, error) {
 		if err != nil {
 			return nil, err
 		}
-		return MemberSelector{last.Content, node}, nil
+		return MemberSelector{Identifier{last.Content}, node}, nil
 	}
-	return Variable{last.Content}, nil
+	return Identifier{last.Content}, nil
 }

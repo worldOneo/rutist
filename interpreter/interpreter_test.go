@@ -29,7 +29,8 @@ func TestRun_Status(t *testing.T) {
 				return true
 			},
 			false,
-		}, {
+		},
+		{
 			"TryCatch",
 			args{
 				ast: ast.Parsep(tokens.Lexerp(`
@@ -43,6 +44,34 @@ func TestRun_Status(t *testing.T) {
 				v := r.GetVar("err").(*Error)
 				_, err := builtinThrow(r, []Value{String("This is an error")})
 				return v.Err.Error() == err.Err.Error()
+			},
+			false,
+		},
+		{
+			"member invoke",
+			args{
+				ast.Parsep(tokens.Lexerp(`
+				varString = "test"
+				l = varString.len()
+				`)),
+			},
+			func(r *Runtime) bool {
+				v, ok := r.CurrentScope().variables["l"]
+				return ok && v == Int(4)
+			},
+			false,
+		},
+		{
+			"Result member access invoke",
+			args{
+				ast.Parsep(tokens.Lexerp(`
+				varString = "test"
+				l = str(varString).len()
+				`)),
+			},
+			func(r *Runtime) bool {
+				v, ok := r.CurrentScope().variables["l"]
+				return ok && v == Int(4)
 			},
 			false,
 		},

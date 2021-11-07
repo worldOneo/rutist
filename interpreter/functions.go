@@ -11,16 +11,32 @@ func init() {
 	builtins["try"] = builtinTrycatch
 	builtins["throw"] = builtinThrow
 	builtins["run"] = builtinRun
+	builtins["str"] = builtinStr
+}
+
+func builtinStr(R *Runtime, args []Value) (Value, *Error) {
+	if len(args) != 1 {
+		return builtinThrow(R, []Value{String("Str: Requires exactly 1 parameter")})
+	}
+	str, ok := args[0].Members()[TypeStr]
+	if !ok {
+		return String(fmt.Sprintf("%v", args[0])), nil
+	}
+	strFunc, funcOk := str.(Function)
+	if !funcOk {
+		return str, nil
+	}
+	return strFunc(R, args)
 }
 
 func builtinRun(R *Runtime, args []Value) (Value, *Error) {
 	if len(args) != 1 {
-		return builtinThrow(nil, []Value{String("Run: Require exactly 1 parameter")})
+		return builtinThrow(R, []Value{String("Run: Require exactly 1 parameter")})
 	}
 
 	scope, ok := args[0].(*Scoope)
 	if !ok {
-		return builtinThrow(nil, []Value{String("Run: Parameter1 must be scope")})
+		return builtinThrow(R, []Value{String("Run: Parameter1 must be scope")})
 	}
 	return R.Run(scope.node.Body)
 }

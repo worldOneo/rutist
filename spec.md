@@ -27,4 +27,5 @@ Builtins
 "string"
 int
 float
+bool
 ```

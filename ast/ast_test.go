@@ -1,6 +1,8 @@
 package ast
 
 import (
+	"encoding/json"
+	"os"
 	"reflect"
 	"testing"
 
@@ -24,9 +26,9 @@ func TestParse(t *testing.T) {
 			`)},
 			Block{
 				Body: []Node{
-					Expression{Variable{"route"}, []Node{
+					Expression{Identifier{"route"}, []Node{
 						String{"/test/"},
-						Expression{Variable{"yeet"}, []Node{
+						Expression{Identifier{"yeet"}, []Node{
 							String{"me"},
 							String{"out"}},
 						},
@@ -44,8 +46,8 @@ func TestParse(t *testing.T) {
 			`)},
 			Block{
 				Body: []Node{
-					Assignment{Variable{"test"}, Int{100}},
-					Assignment{Variable{"test"}, Float{100.5}},
+					Assignment{Identifier{"test"}, Int{100}},
+					Assignment{Identifier{"test"}, Float{100.5}},
 				},
 			},
 			false,
@@ -58,8 +60,8 @@ func TestParse(t *testing.T) {
 			`)},
 			Block{
 				Body: []Node{
-					Assignment{Variable{"test"}, Bool{true}},
-					Assignment{Variable{"test"}, Bool{false}},
+					Assignment{Identifier{"test"}, Bool{true}},
+					Assignment{Identifier{"test"}, Bool{false}},
 				},
 			},
 			false,
@@ -75,9 +77,9 @@ func TestParse(t *testing.T) {
 			`)},
 			Block{
 				Body: []Node{
-					Expression{Variable{"try"}, []Node{
+					Expression{Identifier{"try"}, []Node{
 						Scope{Block{[]Node{
-							Expression{Variable{"print"}, []Node{Variable{"test"}}},
+							Expression{Identifier{"print"}, []Node{Identifier{"test"}}},
 						}}},
 						Scope{Block{[]Node{}}},
 					}},
@@ -94,9 +96,9 @@ func TestParse(t *testing.T) {
 			Block{
 				[]Node{
 					Assignment{
-						Variable{"err"},
-						Expression{Variable{"try"}, []Node{Scope{Block{[]Node{
-							Expression{Variable{"print"}, []Node{Int{1}}},
+						Identifier{"err"},
+						Expression{Identifier{"try"}, []Node{Scope{Block{[]Node{
+							Expression{Identifier{"print"}, []Node{Int{1}}},
 						}}}}},
 					},
 				},
@@ -110,7 +112,25 @@ func TestParse(t *testing.T) {
 			`)},
 			Block{
 				[]Node{
-					Expression{MemberSelector{"var", Variable{"member"}}, []Node{}},
+					Expression{MemberSelector{Identifier{"var"}, Identifier{"member"}}, []Node{}},
+				},
+			},
+			false,
+		},
+		{
+			"result call",
+			args{tokens.Lexerp(`
+			l = str(varString).len()
+			`)},
+			Block{
+				[]Node{
+					Assignment{
+						Identifier{"l"},
+						MemberSelector{
+							Expression{Identifier{"str"}, []Node{Identifier{"varString"}}},
+							Expression{Identifier{"len"}, []Node{}},
+						},
+					},
 				},
 			},
 			false,
@@ -124,6 +144,7 @@ func TestParse(t *testing.T) {
 				return
 			}
 			if !reflect.DeepEqual(got, tt.want) {
+				json.NewEncoder(os.Stdout).Encode(got)
 				t.Errorf("Parse() = %v, want %v", got, tt.want)
 			}
 		})

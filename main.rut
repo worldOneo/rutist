@@ -23,4 +23,6 @@ err = try(@{
 
 print("Different Error handling: %s\n", err)
 
+
 print("varString len: %d\n", varString.len())
+print("Cool synax: %d\n", str("test").len())

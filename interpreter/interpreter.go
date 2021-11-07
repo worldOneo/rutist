@@ -43,15 +43,15 @@ func (R *Runtime) Run(program ast.Node) (Value, *Error) {
 			}
 		}
 	case ast.Expression:
-		return R.RunExpression(nil, node)
+		return R.invokeValue(nil, node)
 	case ast.Assignment:
 		val, err := R.Run(node.Value)
 		if err != nil {
 			return nil, err
 		}
-		v := node.Identifier.(ast.Variable)
+		v := node.Identifier.(ast.Identifier)
 		R.CurrentScope().variables[v.Name] = val
-	case ast.Variable:
+	case ast.Identifier:
 		return R.CurrentScope().variables[node.Name], nil
 	case ast.Float:
 		return Float(node.Value), nil
@@ -63,6 +63,18 @@ func (R *Runtime) Run(program ast.Node) (Value, *Error) {
 		return String(node.Value), nil
 	case ast.Scope:
 		return &Scoope{node}, nil
+	case ast.MemberSelector:
+		v, err := R.Run(node.Object)
+		if err != nil {
+			return nil, err
+		}
+		switch prop := node.Property.(type) {
+		case ast.Identifier, ast.MemberSelector:
+			return R.GetMember(v, prop)
+		case ast.Expression:
+			return R.invokeExpression(v, prop)
+		}
+		return nil, nil
 	}
 	return nil, nil
 }
@@ -100,33 +112,48 @@ func (R *Runtime) GetMember(v Value, property ast.Node) (Value, *Error) {
 		return nil, &Error{fmt.Errorf("Member: variable is nil")}
 	}
 	switch prop := property.(type) {
-	case ast.Variable:
+	case ast.Identifier:
 		member, ok := v.Members()[prop.Name]
 		if !ok {
 			return nil, &Error{fmt.Errorf("Member: member %s doesnt exist", property)}
 		}
 		return member, nil
 	case ast.MemberSelector:
-		member, ok := v.Members()[prop.Identifier]
-		if !ok {
-			return nil, &Error{fmt.Errorf("Member: member %s doesnt exist", property)}
+		switch obj := prop.Object.(type) {
+		case ast.Identifier:
+			member, ok := v.Members()[obj.Name]
+			if !ok {
+				return nil, &Error{fmt.Errorf("Member: member %s doesnt exist", property)}
+			}
+			return R.GetMember(member, prop.Property)
+		case ast.Expression:
+			v, err := R.invokeValue(v, obj)
+			if err != nil {
+				return nil, err
+			}
+			return R.GetMember(v, prop.Property)
 		}
-		return R.GetMember(member, prop.Property)
+	case ast.Expression:
+		return R.invokeValue(v, prop)
 	}
 	return nil, &Error{fmt.Errorf("Invalid property")}
 }
 
-func (R *Runtime) RunExpression(v Value, node ast.Expression) (Value, *Error) {
+func (R *Runtime) invokeValue(v Value, node ast.Expression) (Value, *Error) {
 	if v == nil {
 		switch callee := node.Callee.(type) {
-		case ast.Variable:
-			return R.RunExpression(R.GetVar(callee.Name), node)
+		case ast.Identifier:
+			return R.invokeValue(R.GetVar(callee.Name), node)
 		case ast.MemberSelector:
-			member, err := R.GetMember(R.GetVar(callee.Identifier), callee.Property)
+			obj, err := R.Run(callee.Object)
 			if err != nil {
 				return nil, err
 			}
-			return R.RunExpression(member, node)
+			member, err := R.GetMember(obj, callee.Property)
+			if err != nil {
+				return nil, err
+			}
+			return R.invokeValue(member, node)
 		}
 	}
 
@@ -148,4 +175,12 @@ func (R *Runtime) RunExpression(v Value, node ast.Expression) (Value, *Error) {
 		args = append(args, v)
 	}
 	return R.CallFunction(fun, args)
+}
+
+func (R *Runtime) invokeExpression(v Value, node ast.Expression) (Value, *Error) {
+	fun, ok := v.Members()[node.Callee.(ast.Identifier).Name]
+	if !ok {
+		return nil, &Error{fmt.Errorf("Invalid invocation field")}
+	}
+	return R.invokeValue(fun, node)
 }

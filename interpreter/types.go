@@ -17,11 +17,15 @@ type Scoope struct {
 
 const (
 	TypeRun = "__run__"
+	TypeStr = "__str__"
+	TypeLen = "__len__"
 )
 
 func (S String) Members() map[string]Value {
 	return map[string]Value{
-		"len": Function(S.len),
+		"len":   Function(S.len),
+		TypeStr: Function(func(_ *Runtime, _ []Value) (Value, *Error) { return S, nil }),
+		TypeLen: Function(S.len),
 	}
 }
 
