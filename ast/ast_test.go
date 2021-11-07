@@ -156,6 +156,26 @@ func TestParse(t *testing.T) {
 			},
 			false,
 		},
+		{
+			"inline func call",
+			args{tokens.Lexerp(`
+				var = {"test"}()
+			`)},
+			Block{
+				[]Node{
+					Assignment{
+						Identifier{"var"},
+						Expression{
+							Scope{
+								Block{[]Node{String{"test"}}},
+							},
+							[]Node{},
+						},
+					},
+				},
+			},
+			false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

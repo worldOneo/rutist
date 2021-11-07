@@ -132,6 +132,13 @@ func (P *Parser) checkAppendage(prev Node) (Node, error) {
 			return nil, err
 		}
 		return P.checkAppendage(MemberSelector{prev, val})
+	case tokens.ParenOpen:
+		P.next()
+		args, err := P.argList(false)
+		if err != nil {
+			return nil, err
+		}
+		return P.checkAppendage(Expression{prev, args})
 	}
 	return prev, nil
 }

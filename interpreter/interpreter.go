@@ -36,11 +36,16 @@ func NewScope(capture map[string]Value) *Scope {
 func (R *Runtime) Run(program ast.Node) (Value, *Error) {
 	switch node := program.(type) {
 	case ast.Block:
+		var lastVal Value
+		var err *Error
 		for i := 0; i < len(node.Body); i++ {
-			_, err := R.Run(node.Body[i])
+			lastVal, err = R.Run(node.Body[i])
 			if err != nil {
 				return nil, err
 			}
+		}
+		if lastVal != nil {
+			return lastVal, nil
 		}
 	case ast.Expression:
 		return R.invokeValue(nil, node)
@@ -62,7 +67,7 @@ func (R *Runtime) Run(program ast.Node) (Value, *Error) {
 	case ast.String:
 		return String(node.Value), nil
 	case ast.Scope:
-		return &Scoope{node}, nil
+		return &Scoope{node.Body}, nil
 	case ast.FunctionDefinition:
 		return &FuncDef{node.ArgList, node.Scope}, nil
 	case ast.MemberSelector:
@@ -146,16 +151,12 @@ func (R *Runtime) invokeValue(v Value, node ast.Expression) (Value, *Error) {
 		switch callee := node.Callee.(type) {
 		case ast.Identifier:
 			return R.invokeValue(R.GetVar(callee.Name), node)
-		case ast.MemberSelector:
-			obj, err := R.Run(callee.Object)
+		default:
+			v, err := R.Run(callee)
 			if err != nil {
 				return nil, err
 			}
-			member, err := R.GetMember(obj, callee.Property)
-			if err != nil {
-				return nil, err
-			}
-			return R.invokeValue(member, node)
+			return R.invokeValue(v, node)
 		}
 	}
 

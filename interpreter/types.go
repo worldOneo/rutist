@@ -12,7 +12,7 @@ type Float float64
 type Function func(*Runtime, []Value) (Value, *Error)
 type Bool bool
 type Scoope struct {
-	node ast.Scope
+	node ast.Node
 }
 type FuncDef struct {
 	args []ast.Identifier
@@ -20,16 +20,18 @@ type FuncDef struct {
 }
 
 const (
-	TypeRun = "__run__"
-	TypeStr = "__str__"
-	TypeLen = "__len__"
+	TypeRun  = "__run__"
+	TypeStr  = "__str__"
+	TypeLen  = "__len__"
+	TypeBool = "__bool__"
 )
 
 func (S String) Members() MemberDict {
 	return MemberDict{
-		"len":   Function(S.len),
-		TypeStr: Function(func(_ *Runtime, _ []Value) (Value, *Error) { return S, nil }),
-		TypeLen: Function(S.len),
+		"len":    Function(S.len),
+		TypeStr:  Function(func(_ *Runtime, _ []Value) (Value, *Error) { return S, nil }),
+		TypeLen:  Function(S.len),
+		TypeBool: Function(func(_ *Runtime, _ []Value) (Value, *Error) { return Bool(S != ""), nil }),
 	}
 }
 
@@ -60,15 +62,21 @@ func (F Function) Members() MemberDict {
 }
 
 func (I Int) Members() MemberDict {
-	return MemberDict{}
+	return MemberDict{
+		TypeBool: Function(func(r *Runtime, v []Value) (Value, *Error) { return Bool(I != 0), nil }),
+	}
 }
 
 func (F Float) Members() MemberDict {
-	return MemberDict{}
+	return MemberDict{
+		TypeBool: Function(func(r *Runtime, v []Value) (Value, *Error) { return Bool(F != 0.0), nil }),
+	}
 }
 
 func (B Bool) Members() MemberDict {
-	return MemberDict{}
+	return MemberDict{
+		TypeBool: Function(func(r *Runtime, v []Value) (Value, *Error) { return B, nil }),
+	}
 }
 
 func (S *Scoope) Members() MemberDict {

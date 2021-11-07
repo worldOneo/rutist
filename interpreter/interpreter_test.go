@@ -35,7 +35,7 @@ func TestRun_Status(t *testing.T) {
 			"TryCatch",
 			args{
 				ast: ast.Parsep(tokens.Lexerp(`
-				err = try(@{
+				err = try({
 					throw("This is an error")
 				})
 				`)),
@@ -79,13 +79,13 @@ func TestRun_Status(t *testing.T) {
 		{
 			"function definition",
 			args{ast.Parsep(tokens.Lexerp(`
-				handle=@(err){
+				handle = (err){
 					print("Err: %s", err)
 				}
 			`))},
 			func(r *Runtime) bool {
-				handle, ok := r.CurrentScope().variables["handle"]
-				if !ok {
+				handle := r.GetVar("handle")
+				if handle == null {
 					return false
 				}
 				h, o := handle.(*FuncDef)
@@ -93,6 +93,20 @@ func TestRun_Status(t *testing.T) {
 					return false
 				}
 				return reflect.DeepEqual(h.args, []ast.Identifier{{"err"}})
+			},
+			false,
+		},
+		{
+			"inline func call",
+			args{ast.Parsep(tokens.Lexerp(`
+				var = {"test"}()
+			`))},
+			func(r *Runtime) bool {
+				v := r.GetVar("var")
+				if v == null {
+					return false
+				}
+				return v.(String) == String("test")
 			},
 			false,
 		},

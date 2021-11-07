@@ -38,7 +38,7 @@ func builtinRun(R *Runtime, args []Value) (Value, *Error) {
 	if !ok {
 		return builtinThrow(R, []Value{String("Run: Parameter1 must be scope")})
 	}
-	return R.Run(scope.node.Body)
+	return R.Run(scope.node)
 }
 
 func builtinThrow(_ *Runtime, args []Value) (Value, *Error) {
