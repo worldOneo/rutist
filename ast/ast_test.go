@@ -69,9 +69,9 @@ func TestParse(t *testing.T) {
 		{
 			"scoper",
 			args{lexed: tokens.Lexerp(`
-			try(@{
+			try({
 				print(test)
-			}, @{
+			}, {
 
 			})
 			`)},
@@ -90,7 +90,7 @@ func TestParse(t *testing.T) {
 		{
 			"return assign",
 			args{tokens.Lexerp(`
-			err = try(@{
+			err = try({
 				print(1)
 			})`)},
 			Block{
@@ -138,7 +138,7 @@ func TestParse(t *testing.T) {
 		{
 			"function definition",
 			args{tokens.Lexerp(`
-				handle=@(err){
+				handle= (err){
 					print("Err: %s", err)
 				}
 			`)},

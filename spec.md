@@ -2,7 +2,7 @@
 
 Scopes:
 ```
-name(@{
+name({
 
 })
 ```
@@ -32,7 +32,7 @@ bool
 
 Function definition
 ```
-myFunction = @(arg1, arg2){
+myFunction = (arg1, arg2){
 
 }
 ```

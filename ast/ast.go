@@ -188,41 +188,39 @@ func (P *Parser) pullValue() (Node, error) {
 }
 
 func (P *Parser) _pullValue() (Node, error) {
-	next, has := P.next()
+	next, has := P.peek()
 	if !has {
 		return nil, fmt.Errorf("Expected value")
 	}
 
-	peek, _ := P.peek()
 	switch next.Type {
-	case tokens.Scoper:
-		if peek.Type == tokens.ScopeOpen {
-			b, err := P.parse()
-			if err != nil {
-				return nil, err
-			}
-			return Scope{b}, nil
-		} else if peek.Type == tokens.ParenOpen {
-			P.next()
-			args, err := P.argList(true)
-			if err != nil {
-				return nil, err
-			}
-			arglist := make([]Identifier, len(args))
-			for i := 0; i < len(args); i++ {
-				arg, ok := args[i].(Identifier)
-				if !ok {
-					return nil, fmt.Errorf("Identifier expected line: %d", peek.Line)
-				}
-				arglist[i] = arg
-			}
-			b, err := P.parse()
-			if err != nil {
-				return nil, err
-			}
-			return FunctionDefinition{b, arglist}, nil
+	case tokens.ScopeOpen:
+		b, err := P.parse()
+		if err != nil {
+			return nil, err
 		}
+		return Scope{b}, nil
+	case tokens.ParenOpen:
+		P.next()
+		args, err := P.argList(true)
+		if err != nil {
+			return nil, err
+		}
+		arglist := make([]Identifier, len(args))
+		for i := 0; i < len(args); i++ {
+			arg, ok := args[i].(Identifier)
+			if !ok {
+				return nil, fmt.Errorf("Identifier expected line: %d", next.Line)
+			}
+			arglist[i] = arg
+		}
+		b, err := P.parse()
+		if err != nil {
+			return nil, err
+		}
+		return FunctionDefinition{b, arglist}, nil
 	case tokens.Identifier:
+		P.next()
 		identifier, err := P.parseIdentifier(next)
 		if err != nil {
 			return nil, err
@@ -249,12 +247,16 @@ func (P *Parser) _pullValue() (Node, error) {
 		}
 		return Identifier{next.Content}, nil
 	case tokens.Float:
+		P.next()
 		return Float{next.ValueFloat}, nil
 	case tokens.Integer:
+		P.next()
 		return Int{next.ValueInt}, nil
 	case tokens.String:
+		P.next()
 		return String{next.Content}, nil
 	case tokens.Boolean:
+		P.next()
 		return Bool{next.ValueInt == 1}, nil
 	}
 	return nil, fmt.Errorf("Identifier Expected")

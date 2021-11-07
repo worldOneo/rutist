@@ -11,13 +11,13 @@ varFloat = 10.5
 print("Floats %f\n", varFloat)
 
 
-try(@{
+try({
   throw("Error handling")
-}, @(err){
+}, (err){
   print("Error: %s\n", err)
 })
 
-err = try(@{
+err = try({
   throw("Reasons!")
 })
 
@@ -27,7 +27,7 @@ print("Different Error handling: %s\n", err)
 print("varString len: %d\n", varString.len())
 print("Cool synax: %d\n", str("test").len())
 
-sayHi = @(name){
+sayHi = (name){
   print("Hi %s!\n", name)
 }
 
