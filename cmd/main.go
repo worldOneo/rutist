@@ -4,6 +4,7 @@ import (
 	"flag"
 	"io/ioutil"
 	"log"
+	"path/filepath"
 
 	"github.com/worldOneo/rutist/ast"
 	"github.com/worldOneo/rutist/interpreter"
@@ -27,7 +28,11 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	_, err = interpreter.Run(parsed)
+	abs, err := filepath.Abs(file)
+	if err != nil {
+		log.Fatal(err)
+	}
+	_, err = interpreter.Run(abs, parsed)
 	if err != nil {
 		log.Fatal(err)
 	}

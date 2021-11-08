@@ -9,6 +9,8 @@ import (
 	"github.com/worldOneo/rutist/tokens"
 )
 
+var meta = &Meta{tokens.Token{}}
+
 func TestParse(t *testing.T) {
 	type args struct {
 		lexed []tokens.Token
@@ -26,15 +28,19 @@ func TestParse(t *testing.T) {
 			`)},
 			Block{
 				Body: []Node{
-					Expression{Identifier{"route"}, []Node{
-						String{"/test/"},
-						Expression{Identifier{"yeet"}, []Node{
-							String{"me"},
-							String{"out"}},
+					Expression{Identifier{"route", meta}, []Node{
+						String{"/test/", meta},
+						Expression{Identifier{"yeet", meta}, []Node{
+							String{"me", meta},
+							String{"out", meta},
+						},
+							meta,
 						},
 					},
+						meta,
 					},
 				},
+				Meta: meta,
 			},
 			false,
 		},
@@ -46,9 +52,10 @@ func TestParse(t *testing.T) {
 			`)},
 			Block{
 				Body: []Node{
-					Assignment{Identifier{"test"}, Int{100}},
-					Assignment{Identifier{"test"}, Float{100.5}},
+					Assignment{Identifier{"test", meta}, Int{100, meta}, meta},
+					Assignment{Identifier{"test", meta}, Float{100.5, meta}, meta},
 				},
+				Meta: meta,
 			},
 			false,
 		},
@@ -60,9 +67,10 @@ func TestParse(t *testing.T) {
 			`)},
 			Block{
 				Body: []Node{
-					Assignment{Identifier{"test"}, Bool{true}},
-					Assignment{Identifier{"test"}, Bool{false}},
+					Assignment{Identifier{"test", meta}, Bool{true, meta}, meta},
+					Assignment{Identifier{"test", meta}, Bool{false, meta}, meta},
 				},
+				Meta: meta,
 			},
 			false,
 		},
@@ -77,13 +85,14 @@ func TestParse(t *testing.T) {
 			`)},
 			Block{
 				Body: []Node{
-					Expression{Identifier{"try"}, []Node{
+					Expression{Identifier{"try", meta}, []Node{
 						Scope{Block{[]Node{
-							Expression{Identifier{"print"}, []Node{Identifier{"test"}}},
-						}}},
-						Scope{Block{[]Node{}}},
-					}},
+							Expression{Identifier{"print", meta}, []Node{Identifier{"test", meta}}, meta},
+						}, meta}, meta},
+						Scope{Block{[]Node{}, meta}, meta},
+					}, meta},
 				},
+				Meta: meta,
 			},
 			false,
 		},
@@ -96,12 +105,27 @@ func TestParse(t *testing.T) {
 			Block{
 				[]Node{
 					Assignment{
-						Identifier{"err"},
-						Expression{Identifier{"try"}, []Node{Scope{Block{[]Node{
-							Expression{Identifier{"print"}, []Node{Int{1}}},
-						}}}}},
+						Identifier{"err", meta},
+						Expression{
+							Identifier{"try", meta},
+							[]Node{
+								Scope{
+									Block{
+										[]Node{
+											Expression{
+												Identifier{"print", meta},
+												[]Node{Int{1, meta}},
+												meta,
+											},
+										},
+										meta},
+									meta},
+							},
+							meta},
+						meta,
 					},
 				},
+				meta,
 			},
 			false,
 		},
@@ -112,8 +136,9 @@ func TestParse(t *testing.T) {
 			`)},
 			Block{
 				[]Node{
-					Expression{MemberSelector{Identifier{"var"}, Identifier{"member"}}, []Node{}},
+					Expression{MemberSelector{Identifier{"var", meta}, Identifier{"member", meta}, meta}, []Node{}, meta},
 				},
+				meta,
 			},
 			false,
 		},
@@ -125,13 +150,16 @@ func TestParse(t *testing.T) {
 			Block{
 				[]Node{
 					Assignment{
-						Identifier{"l"},
+						Identifier{"l", meta},
 						MemberSelector{
-							Expression{Identifier{"str"}, []Node{Identifier{"varString"}}},
-							Expression{Identifier{"len"}, []Node{}},
+							Expression{Identifier{"str", meta}, []Node{Identifier{"varString", meta}}, meta},
+							Expression{Identifier{"len", meta}, []Node{}, meta},
+							meta,
 						},
+						meta,
 					},
 				},
+				meta,
 			},
 			false,
 		},
@@ -145,14 +173,22 @@ func TestParse(t *testing.T) {
 			Block{
 				[]Node{
 					Assignment{
-						Identifier{"handle"},
-						FunctionDefinition{Block{
-							[]Node{
-								Expression{Identifier{"print"}, []Node{String{"Err: %s"}, Identifier{"err"}}},
-							},
-						}, []Identifier{{"err"}}},
-					},
+						Identifier{"handle", meta},
+						FunctionDefinition{
+							Block{
+								[]Node{
+									Expression{
+										Identifier{"print", meta},
+										[]Node{String{"Err: %s", meta}, Identifier{"err", meta}},
+										meta,
+									},
+								},
+								meta,
+							}, []Identifier{{"err", meta}},
+							meta},
+						meta},
 				},
+				meta,
 			},
 			false,
 		},
@@ -164,15 +200,19 @@ func TestParse(t *testing.T) {
 			Block{
 				[]Node{
 					Assignment{
-						Identifier{"var"},
+						Identifier{"var", meta},
 						Expression{
 							Scope{
-								Block{[]Node{String{"test"}}},
+								Block{[]Node{String{"test", meta}}, meta},
+								meta,
 							},
 							[]Node{},
+							meta,
 						},
+						meta,
 					},
 				},
+				meta,
 			},
 			false,
 		},
@@ -185,17 +225,20 @@ func TestParse(t *testing.T) {
 			Block{
 				[]Node{
 					Assignment{
-						Identifier{"v"},
-						MemberSelector{Identifier{"a"}, Identifier{"value"}},
+						Identifier{"v", meta},
+						MemberSelector{Identifier{"a", meta}, Identifier{"value", meta}, meta},
+						meta,
 					},
 					Expression{
-						Identifier{"print"},
+						Identifier{"print", meta},
 						[]Node{
-							String{"Magik: %v"},
-							Identifier{"v"},
+							String{"Magik: %v", meta},
+							Identifier{"v", meta},
 						},
+						meta,
 					},
 				},
+				meta,
 			},
 			false,
 		},
@@ -207,6 +250,9 @@ func TestParse(t *testing.T) {
 				t.Errorf("Parse() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
+			walkTree(got, func(node Node) {
+				node.SetToken(meta.At) // Nulling meta for testing, would be to anoying
+			})
 			if !reflect.DeepEqual(got, tt.want) {
 				json.NewEncoder(os.Stdout).Encode(got)
 				t.Errorf("Parse() = %v, want %v", got, tt.want)

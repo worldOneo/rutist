@@ -3,6 +3,7 @@ package interpreter
 import (
 	"fmt"
 	"io/ioutil"
+	"path/filepath"
 
 	"github.com/worldOneo/rutist/ast"
 	"github.com/worldOneo/rutist/tokens"
@@ -31,11 +32,16 @@ func builtinImport(r *Runtime, args []Value) (Value, *Error) {
 	if err != nil {
 		return nil, err
 	}
-	file, ok := str.(String)
+	fileVar, ok := str.(String)
 	if !ok {
 		return builtinThrow(r, []Value{String("Import: Arg1 must be string")})
 	}
-	content, e := ioutil.ReadFile(string(file))
+	file := string(fileVar)
+	dir := filepath.Dir(r.File)
+	if !filepath.IsAbs(file) {
+		file = filepath.Join(dir, file)
+	}
+	content, e := ioutil.ReadFile(file)
 	if e != nil {
 		return nil, &Error{e}
 	}
@@ -48,7 +54,8 @@ func builtinImport(r *Runtime, args []Value) (Value, *Error) {
 	if err != nil {
 		return nil, &Error{e}
 	}
-	runtime := New()
+
+	runtime := New(file)
 	_, err = runtime.Run(parsed)
 	if err != nil {
 		return nil, err
@@ -68,14 +75,14 @@ func builtinModule(r *Runtime, args []Value) (Value, *Error) {
 	if !ok {
 		return builtinThrow(r, []Value{String("Module: Parameter 1 must be runnable")})
 	}
-	
+
 	return r.CallFunction(fn, []Value{
 		Function(func(r *Runtime, v []Value) (Value, *Error) {
 			if len(v) != 2 {
 				return builtinThrow(r, []Value{String("Module: Export requires exactly 2 parameters")})
 			}
-			
-			r.SpecialFields[SpecialfFieldExport].(Map).Set(r, v)
+
+			r.SpecialFields[SpecialfFieldExport].(Dict)[v[0]] = v[1]
 			return nil, nil
 		}),
 	})

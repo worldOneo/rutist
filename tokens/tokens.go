@@ -87,6 +87,9 @@ func (C *CodeLexer) Lexer() ([]Token, error) {
 		c := C.code[i]
 		n, peeked := Peek(C.code, i+1)
 		if isNewLine(c) {
+			if isNewLine(n) {
+				i++
+			}
 			line++
 			lineComment = false
 			continue

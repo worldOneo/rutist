@@ -38,7 +38,7 @@ map = Map()
 map.set("test", "My name is")
 print("%s bob\n", map.get("test"))
 test = import("./test.rut")
-print("Importet: %d\n", test.get("value"))
+print("Imported: %d\n", test.value)
 
 a = Dict()
 a.value = 1

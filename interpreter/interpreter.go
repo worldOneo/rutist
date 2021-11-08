@@ -7,6 +7,7 @@ import (
 )
 
 type Runtime struct {
+	File          string
 	Scopes        []*Scope
 	ScopeIndex    int
 	SpecialFields Map
@@ -16,18 +17,19 @@ const (
 	SpecialfFieldExport = String("export")
 )
 
-func New() *Runtime {
+func New(file string) *Runtime {
 	return &Runtime{
+		file,
 		[]*Scope{NewScope(map[string]Value{})},
 		0,
 		map[Value]Value{
-			SpecialfFieldExport: Map{},
+			SpecialfFieldExport: Dict{},
 		},
 	}
 }
 
-func Run(ast ast.Node) (Value, error) {
-	runtime := New()
+func Run(file string, ast ast.Node) (Value, error) {
+	runtime := New(file)
 	val, err := runtime.Run(ast)
 	if err == nil {
 		return val, nil
@@ -117,13 +119,13 @@ func (R *Runtime) CallFunction(function Function, args []Value) (Value, *Error) 
 
 func (R *Runtime) GetMember(v Value, property ast.Node) (Value, *Error) {
 	if v == nil {
-		return nil, &Error{fmt.Errorf("Member: variable is nil")}
+		return nil, R.error("Member: member doesnt exist", property)
 	}
 	switch prop := property.(type) {
 	case ast.Identifier:
 		member, ok := v.Members()[String(prop.Name)]
 		if !ok {
-			return nil, &Error{fmt.Errorf("Member: member %s doesnt exist", property)}
+			return nil, nil
 		}
 		return member, nil
 	case ast.MemberSelector:
@@ -131,7 +133,7 @@ func (R *Runtime) GetMember(v Value, property ast.Node) (Value, *Error) {
 		case ast.Identifier:
 			member, ok := v.Members()[String(obj.Name)]
 			if !ok {
-				return nil, &Error{fmt.Errorf("Member: member %s doesnt exist", property)}
+				return nil, R.error("Member: member doesnt exist", property)
 			}
 			return R.GetMember(member, prop.Property)
 		case ast.Expression:
@@ -144,7 +146,7 @@ func (R *Runtime) GetMember(v Value, property ast.Node) (Value, *Error) {
 	case ast.Expression:
 		return R.invokeValue(v, prop)
 	}
-	return nil, &Error{fmt.Errorf("Invalid property")}
+	return nil, R.error("Invalid property", property)
 }
 
 func (R *Runtime) invokeValue(v Value, node ast.Expression) (Value, *Error) {
@@ -163,11 +165,11 @@ func (R *Runtime) invokeValue(v Value, node ast.Expression) (Value, *Error) {
 
 	run, ok := v.Members()[TypeRun]
 	if !ok {
-		return nil, &Error{fmt.Errorf("Invalid invocation")}
+		return nil, R.error("Invalid invocation", node)
 	}
 	fun, ok := run.(Function)
 	if !ok {
-		return nil, &Error{fmt.Errorf("Invalid invocation")}
+		return nil, R.error("Invalid invocation", node)
 	}
 
 	args := make([]Value, 0)
@@ -184,7 +186,7 @@ func (R *Runtime) invokeValue(v Value, node ast.Expression) (Value, *Error) {
 func (R *Runtime) invokeExpression(v Value, node ast.Expression) (Value, *Error) {
 	fun, ok := v.Members()[String(node.Callee.(ast.Identifier).Name)]
 	if !ok {
-		return nil, &Error{fmt.Errorf("Invalid invocation field")}
+		return nil, R.error("Invalid invocation field", node)
 	}
 	return R.invokeValue(fun, node)
 }
@@ -236,5 +238,5 @@ func (R *Runtime) assignValue(val Value, node ast.Node) (Value, *Error) {
 }
 
 func (R *Runtime) error(msg string, node ast.Node) *Error {
-	return &Error{fmt.Errorf(msg)}
+	return &Error{fmt.Errorf("%s at %s:%d", msg, R.File, node.Token().Line)}
 }

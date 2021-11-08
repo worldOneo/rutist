@@ -92,7 +92,7 @@ func TestRun_Status(t *testing.T) {
 				if !o {
 					return false
 				}
-				return reflect.DeepEqual(h.args, []ast.Identifier{{"err"}})
+				return reflect.DeepEqual(h.args, []ast.Identifier{{"err", ast.NewMeta(tokens.Token{tokens.Identifier, "err", 0, 0, 1})}})
 			},
 			false,
 		},
@@ -143,7 +143,7 @@ func TestRun_Status(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			r := New()
+			r := New("test.go")
 			_, err := r.Run(tt.args.ast)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Run() error = %v, wantErr %v", err, tt.wantErr)
