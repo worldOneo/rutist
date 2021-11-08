@@ -139,6 +139,13 @@ func (P *Parser) checkAppendage(prev Node) (Node, error) {
 			return nil, err
 		}
 		return P.checkAppendage(Expression{prev, args})
+	case tokens.Assignment:
+		P.next()
+		node, err := P.pullValue()
+		if err != nil {
+			return nil, err
+		}
+		return Assignment{prev, node}, nil
 	}
 	return prev, nil
 }
@@ -232,27 +239,7 @@ func (P *Parser) _pullValue() (Node, error) {
 		if err != nil {
 			return nil, err
 		}
-		peek, peeked := P.peek()
-		if !peeked {
-			return identifier, nil
-		}
-		switch peek.Type {
-		case tokens.ParenOpen:
-			P.next()
-			args, err := P.argList(false)
-			if err != nil {
-				return nil, err
-			}
-			return Expression{identifier, args}, nil
-		case tokens.Assignment:
-			P.next()
-			node, err := P.pullValue()
-			if err != nil {
-				return nil, err
-			}
-			return Assignment{identifier, node}, nil
-		}
-		return Identifier{next.Content}, nil
+		return identifier, nil
 	case tokens.Float:
 		P.next()
 		return Float{next.ValueFloat}, nil

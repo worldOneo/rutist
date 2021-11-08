@@ -176,6 +176,29 @@ func TestParse(t *testing.T) {
 			},
 			false,
 		},
+		{
+			"Access and Expression",
+			args{tokens.Lexerp(`
+			v = a.value
+			print("Magik: %v", v)
+			`)},
+			Block{
+				[]Node{
+					Assignment{
+						Identifier{"v"},
+						MemberSelector{Identifier{"a"}, Identifier{"value"}},
+					},
+					Expression{
+						Identifier{"print"},
+						[]Node{
+							String{"Magik: %v"},
+							Identifier{"v"},
+						},
+					},
+				},
+			},
+			false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

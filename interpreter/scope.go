@@ -1,6 +1,6 @@
 package interpreter
 
-type MemberDict = map[string]Value
+type MemberDict = Map
 
 type Value interface {
 	Members() MemberDict

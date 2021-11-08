@@ -1,0 +1,3 @@
+module((export) {
+  export("value", 1)
+})

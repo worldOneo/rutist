@@ -7,15 +7,27 @@ import (
 )
 
 type Runtime struct {
-	Scopes     []*Scope
-	ScopeIndex int
+	Scopes        []*Scope
+	ScopeIndex    int
+	SpecialFields Map
+}
+
+const (
+	SpecialfFieldExport = String("export")
+)
+
+func New() *Runtime {
+	return &Runtime{
+		[]*Scope{NewScope(map[string]Value{})},
+		0,
+		map[Value]Value{
+			SpecialfFieldExport: Map{},
+		},
+	}
 }
 
 func Run(ast ast.Node) (Value, error) {
-	runtime := Runtime{
-		[]*Scope{NewScope(map[string]Value{})},
-		0,
-	}
+	runtime := New()
 	val, err := runtime.Run(ast)
 	if err == nil {
 		return val, nil
@@ -54,10 +66,9 @@ func (R *Runtime) Run(program ast.Node) (Value, *Error) {
 		if err != nil {
 			return nil, err
 		}
-		v := node.Identifier.(ast.Identifier)
-		R.CurrentScope().variables[v.Name] = val
+		return R.assignValue(val, node.Identifier)
 	case ast.Identifier:
-		return R.CurrentScope().variables[node.Name], nil
+		return R.GetVar(node.Name), nil
 	case ast.Float:
 		return Float(node.Value), nil
 	case ast.Int:
@@ -71,17 +82,7 @@ func (R *Runtime) Run(program ast.Node) (Value, *Error) {
 	case ast.FunctionDefinition:
 		return &FuncDef{node.ArgList, node.Scope}, nil
 	case ast.MemberSelector:
-		v, err := R.Run(node.Object)
-		if err != nil {
-			return nil, err
-		}
-		switch prop := node.Property.(type) {
-		case ast.Identifier, ast.MemberSelector:
-			return R.GetMember(v, prop)
-		case ast.Expression:
-			return R.invokeExpression(v, prop)
-		}
-		return nil, nil
+		return R.getMember(node)
 	}
 	return nil, nil
 }
@@ -120,7 +121,7 @@ func (R *Runtime) GetMember(v Value, property ast.Node) (Value, *Error) {
 	}
 	switch prop := property.(type) {
 	case ast.Identifier:
-		member, ok := v.Members()[prop.Name]
+		member, ok := v.Members()[String(prop.Name)]
 		if !ok {
 			return nil, &Error{fmt.Errorf("Member: member %s doesnt exist", property)}
 		}
@@ -128,7 +129,7 @@ func (R *Runtime) GetMember(v Value, property ast.Node) (Value, *Error) {
 	case ast.MemberSelector:
 		switch obj := prop.Object.(type) {
 		case ast.Identifier:
-			member, ok := v.Members()[obj.Name]
+			member, ok := v.Members()[String(obj.Name)]
 			if !ok {
 				return nil, &Error{fmt.Errorf("Member: member %s doesnt exist", property)}
 			}
@@ -181,9 +182,59 @@ func (R *Runtime) invokeValue(v Value, node ast.Expression) (Value, *Error) {
 }
 
 func (R *Runtime) invokeExpression(v Value, node ast.Expression) (Value, *Error) {
-	fun, ok := v.Members()[node.Callee.(ast.Identifier).Name]
+	fun, ok := v.Members()[String(node.Callee.(ast.Identifier).Name)]
 	if !ok {
 		return nil, &Error{fmt.Errorf("Invalid invocation field")}
 	}
 	return R.invokeValue(fun, node)
+}
+
+func (R *Runtime) getMember(node ast.MemberSelector) (Value, *Error) {
+	v, err := R.Run(node.Object)
+	if err != nil {
+		return nil, err
+	}
+	switch prop := node.Property.(type) {
+	case ast.Identifier, ast.MemberSelector:
+		return R.GetMember(v, prop)
+	case ast.Expression:
+		return R.invokeExpression(v, prop)
+	}
+	return nil, nil
+}
+
+func (R *Runtime) assignValue(val Value, node ast.Node) (Value, *Error) {
+	switch v := node.(type) {
+	case ast.Identifier:
+		R.CurrentScope().variables[v.Name] = val
+		return nil, nil
+	case ast.MemberSelector:
+		obj, err := R.Run(v.Object)
+		if err != nil {
+			return nil, err
+		}
+		prop, ok := v.Property.(ast.Identifier)
+		if !ok {
+			return R.assignValue(val, v.Property)
+		}
+		assign, ok := obj.Members()[TypeSetMember]
+		err = R.error("Invalid assignment", node)
+		if !ok {
+			return nil, err
+		}
+		assignFn, ok := assign.Members()[TypeRun]
+		if !ok {
+			return nil, err
+		}
+		fn, ok := assignFn.(Function)
+		if !ok {
+			return nil, err
+		}
+		return R.CallFunction(fn, []Value{String(prop.Name), val})
+	}
+	return nil, R.error("Invalid assignment", node)
+}
+
+func (R *Runtime) error(msg string, node ast.Node) *Error {
+	return &Error{fmt.Errorf(msg)}
 }

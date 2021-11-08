@@ -2,6 +2,10 @@ package interpreter
 
 import (
 	"fmt"
+	"io/ioutil"
+
+	"github.com/worldOneo/rutist/ast"
+	"github.com/worldOneo/rutist/tokens"
 )
 
 var builtins = map[string]Function{}
@@ -12,11 +16,74 @@ func init() {
 	builtins["throw"] = builtinThrow
 	builtins["run"] = builtinRun
 	builtins["str"] = builtinStr
+	builtins["module"] = builtinModule
+	builtins["import"] = builtinImport
+	builtins["Map"] = func(r *Runtime, v []Value) (Value, *Error) { return Map{}, nil }
+	builtins["Dict"] = func(r *Runtime, v []Value) (Value, *Error) { return Dict{}, nil }
+}
+
+func builtinImport(r *Runtime, args []Value) (Value, *Error) {
+	if len(args) != 1 {
+		return builtinThrow(r, []Value{String("Import: Requires exactly 1 parameter")})
+	}
+
+	str, err := builtinStr(r, args)
+	if err != nil {
+		return nil, err
+	}
+	file, ok := str.(String)
+	if !ok {
+		return builtinThrow(r, []Value{String("Import: Arg1 must be string")})
+	}
+	content, e := ioutil.ReadFile(string(file))
+	if e != nil {
+		return nil, &Error{e}
+	}
+	code := string(content)
+	tokens, e := tokens.Lexer(code)
+	if err != nil {
+		return nil, &Error{e}
+	}
+	parsed, e := ast.Parse(tokens)
+	if err != nil {
+		return nil, &Error{e}
+	}
+	runtime := New()
+	_, err = runtime.Run(parsed)
+	if err != nil {
+		return nil, err
+	}
+	return runtime.SpecialFields[String(SpecialfFieldExport)], nil
+}
+
+func builtinModule(r *Runtime, args []Value) (Value, *Error) {
+	if len(args) != 1 {
+		return builtinThrow(r, []Value{String("Module: Requires exactly 1 parameter")})
+	}
+	f, ok := args[0].Members()[TypeRun]
+	if !ok {
+		return builtinThrow(r, []Value{String("Module: Parameter 1 must be runnable")})
+	}
+	fn, ok := f.(Function)
+	if !ok {
+		return builtinThrow(r, []Value{String("Module: Parameter 1 must be runnable")})
+	}
+	
+	return r.CallFunction(fn, []Value{
+		Function(func(r *Runtime, v []Value) (Value, *Error) {
+			if len(v) != 2 {
+				return builtinThrow(r, []Value{String("Module: Export requires exactly 2 parameters")})
+			}
+			
+			r.SpecialFields[SpecialfFieldExport].(Map).Set(r, v)
+			return nil, nil
+		}),
+	})
 }
 
 func builtinStr(R *Runtime, args []Value) (Value, *Error) {
 	if len(args) != 1 {
-		return builtinThrow(R, []Value{String("Str: Requires exactly 1 parameter")})
+		return builtinThrow(R, []Value{String("Str: Require exactly 1 parameter")})
 	}
 	str, ok := args[0].Members()[TypeStr]
 	if !ok {

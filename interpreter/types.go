@@ -8,6 +8,8 @@ type Error struct {
 	Err error
 }
 
+type Map map[Value]Value
+type Dict Map
 type Float float64
 type Function func(*Runtime, []Value) (Value, *Error)
 type Bool bool
@@ -20,18 +22,19 @@ type FuncDef struct {
 }
 
 const (
-	TypeRun  = "__run__"
-	TypeStr  = "__str__"
-	TypeLen  = "__len__"
-	TypeBool = "__bool__"
+	TypeRun       = String("__run__")
+	TypeStr       = String("__str__")
+	TypeLen       = String("__len__")
+	TypeBool      = String("__bool__")
+	TypeSetMember = String("__setmember__")
 )
 
 func (S String) Members() MemberDict {
 	return MemberDict{
-		"len":    Function(S.len),
-		TypeStr:  Function(func(_ *Runtime, _ []Value) (Value, *Error) { return S, nil }),
-		TypeLen:  Function(S.len),
-		TypeBool: Function(func(_ *Runtime, _ []Value) (Value, *Error) { return Bool(S != ""), nil }),
+		String("len"): Function(S.len),
+		TypeStr:       Function(func(_ *Runtime, _ []Value) (Value, *Error) { return S, nil }),
+		TypeLen:       Function(S.len),
+		TypeBool:      Function(func(_ *Runtime, _ []Value) (Value, *Error) { return Bool(S != ""), nil }),
 	}
 }
 
@@ -87,4 +90,43 @@ func (S *Scoope) Members() MemberDict {
 
 func (E *Error) Members() MemberDict {
 	return MemberDict{}
+}
+
+func (M Map) Members() MemberDict {
+	return MemberDict{
+		String("get"): Function(M.Get),
+		String("set"): Function(M.Set),
+		String("has"): Function(M.Has),
+	}
+}
+
+func (M Map) Get(r *Runtime, v []Value) (Value, *Error) {
+	if len(v) != 1 {
+		return builtinThrow(r, []Value{String("Map: Get Requires exactly 1 parameter")})
+	}
+	return M[v[0]], nil
+}
+
+func (M Map) Set(r *Runtime, v []Value) (Value, *Error) {
+	if len(v) != 2 {
+		return builtinThrow(r, []Value{String("Map: Set Requires exactly 2 parameters")})
+	}
+	M[v[0]] = v[1]
+	return nil, nil
+}
+
+func (M Map) Has(r *Runtime, v []Value) (Value, *Error) {
+	if len(v) != 1 {
+		return builtinThrow(r, []Value{String("Map: Has Requires exactly 1 parameter")})
+	}
+	_, ok := M[v[0]]
+	return Bool(ok), nil
+}
+
+func (D Dict) Members() MemberDict {
+	D[TypeSetMember] = Function(func(r *Runtime, v []Value) (Value, *Error) {
+		D[v[0]] = v[1]
+		return nil, nil
+	})
+	return MemberDict(D)
 }

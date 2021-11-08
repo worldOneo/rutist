@@ -110,13 +110,40 @@ func TestRun_Status(t *testing.T) {
 			},
 			false,
 		},
+		{
+			"module export test",
+			args{ast.Parsep(tokens.Lexerp(`
+			module((export) {
+				export("value", 1)
+			})
+			`))},
+			func(r *Runtime) bool {
+				v, err := r.SpecialFields[SpecialfFieldExport].(Map).Get(r, []Value{String("value")})
+				if err != nil || v == nil {
+					return false
+				}
+				return v == Int(1)
+			},
+			false,
+		},
+		{
+			"set attribute",
+			args{ast.Parsep(tokens.Lexerp(`
+				a = Dict()
+				a.value = 1
+				v = a.value
+				print("Magik: %v", v)
+			`))},
+			func(r *Runtime) bool {
+				v := r.GetVar("v")
+				return v == Int(1)
+			},
+			false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			r := &Runtime{
-				[]*Scope{NewScope(map[string]Value{})},
-				0,
-			}
+			r := New()
 			_, err := r.Run(tt.args.ast)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Run() error = %v, wantErr %v", err, tt.wantErr)
