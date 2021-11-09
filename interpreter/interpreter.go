@@ -207,23 +207,30 @@ func (R *Runtime) getDynamicMember(v Value, property Value) (Value, *Error) {
 	return f(R, []Value{v, property})
 }
 
+func (R *Runtime) getMember(v Value, field String) (Value, *Error) {
+	member, ok := R.getNativeField(v.Type(), field)
+	var err *Error
+	if !ok {
+		member, err = R.getDynamicMember(v, field)
+		if err != nil {
+			return nil, err
+		}
+	}
+	fn, ok := member.(Function)
+	if !ok {
+		return member, nil
+	}
+	return wrappMemberFunction(v, fn), nil
+}
+
 func (R *Runtime) getMemberProperty(v Value, property ast.Node) (Value, *Error) {
 	if v == nil {
 		return nil, R.error("Member: value is nil exist", property)
 	}
-	var member Value
-	var ok bool
-	var err *Error
 	switch prop := property.(type) {
 	case ast.Identifier:
 		field := String(prop.Name)
-		member, ok = R.getNativeField(v.Type(), field)
-		if !ok {
-			member, err = R.getDynamicMember(v, field)
-			if err != nil {
-				return nil, err
-			}
-		}
+		return R.getMember(v, field)
 	case ast.Expression:
 		member, err := R.getMemberProperty(v, prop.Callee)
 		if err != nil {
@@ -231,21 +238,13 @@ func (R *Runtime) getMemberProperty(v Value, property ast.Node) (Value, *Error) 
 		}
 		return R.invokeValue(member)
 	case ast.MemberSelector:
-		member, err = R.getMemberProperty(v, prop.Object)
+		member, err := R.getMemberProperty(v, prop.Object)
 		if err != nil {
 			return nil, err
 		}
 		return R.getMemberProperty(member, prop.Property)
 	}
-	if member == nil {
-		return nil, R.error("Invalid property", property)
-	}
-
-	fn, ok := member.(Function)
-	if !ok {
-		return member, nil
-	}
-	return wrappMemberFunction(v, fn), nil
+	return nil, R.error("Invalid property", property)
 }
 
 func (R *Runtime) buildArgs(this Value, args []ast.Node) ([]Value, *Error) {
@@ -319,15 +318,19 @@ func (R *Runtime) assignValue(val Value, node ast.Node) (Value, *Error) {
 		if !ok {
 			return R.assignValue(val, v.Property)
 		}
-		assign, ok := R.getNativeField(obj.Type(), TypeSetMember)
-		if !ok {
+		assign, err := R.getMember(obj, TypeSetMember)
+		if err != nil {
 			return nil, err
 		}
-		fn, ok := assign.(Function)
+		assignFn, ok := R.getNativeField(assign.Type(), TypeRun)
 		if !ok {
-			return nil, err
+			return nil, R.error("Invalid assignment", node)
 		}
-		return R.CallFunction(fn, []Value{obj, String(prop.Name), val})
+		fn, ok := assignFn.(Function)
+		if !ok {
+			return nil, R.error("Invalid assignment", node)
+		}
+		return R.CallFunction(fn, []Value{assign, String(prop.Name), val})
 	}
 	return nil, R.error("Invalid assignment", node)
 }
