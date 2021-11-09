@@ -92,6 +92,13 @@ func (P *Parser) checkAppendage(prev Node) (Node, error) {
 			return nil, err
 		}
 		return Assignment{prev, node, NewMeta(peek)}, nil
+	case tokens.OperatorType:
+		P.next()
+		node, err := P.pullValue()
+		if err != nil {
+			return nil, err
+		}
+		return P.checkAppendage(BinaryExpression{peek.ValueInt, prev, node, NewMeta(peek)})
 	}
 	return prev, nil
 }
@@ -198,6 +205,13 @@ func (P *Parser) _pullValue() (Node, error) {
 	case tokens.Boolean:
 		P.next()
 		return Bool{next.ValueInt == 1, NewMeta(next)}, nil
+	case tokens.OperatorType:
+		P.next()
+		val, err := P.pullValue()
+		if err != nil {
+			return nil, err
+		}
+		return UnaryExpression{next.ValueInt, val, NewMeta(next)}, nil
 	}
 	return nil, fmt.Errorf("Identifier Expected")
 }

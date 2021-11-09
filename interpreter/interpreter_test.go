@@ -118,8 +118,8 @@ func TestRun_Status(t *testing.T) {
 			})
 			`))},
 			func(r *Runtime) bool {
-				v, err := r.SpecialFields[SpecialfFieldExport].(Map).Get(r, []Value{String("value")})
-				if err != nil || v == nil {
+				v, ok := r.SpecialFields[SpecialfFieldExport].(Dict)[String("value")]
+				if !ok || v == nil {
 					return false
 				}
 				return v == Int(1)

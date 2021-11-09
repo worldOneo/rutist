@@ -3,7 +3,7 @@ package interpreter
 type MemberDict = Map
 
 type Value interface {
-	Members() MemberDict
+	Type() String
 }
 
 type Scope struct {

@@ -7,6 +7,7 @@ import (
 )
 
 type TokenType = uint32
+type Operator = int
 
 type Token struct {
 	Type       TokenType
@@ -30,7 +31,53 @@ const (
 	Boolean
 	Scoper
 	Dot
+	OperatorType
 )
+
+const (
+	OperatorAdd Operator = iota
+	OperatorSub
+	OperatorMul
+	OperatorDiv
+	OperatorMod
+	OperatorOr
+	OperatorAnd
+	OperatorXor
+	OperatorLor
+	OperatorLand
+	OperatorNot
+	OperatorEq
+	OperatorLt
+	OperatorLe
+	OperatorGt
+	OperatorGe
+	OperatorLsh
+	OperatorRsh
+)
+
+var operators = map[string]Operator{}
+
+func init() {
+	operators["+"] = OperatorAdd
+	operators["-"] = OperatorSub
+	operators["*"] = OperatorMul
+	operators["/"] = OperatorDiv
+	operators["%"] = OperatorMod
+	operators["|"] = OperatorOr
+	operators["&"] = OperatorAnd
+	operators["^"] = OperatorXor
+	operators["||"] = OperatorLor
+	operators["&&"] = OperatorLand
+	operators["~"] = OperatorNot
+	operators["!"] = OperatorNot
+	operators["=="] = OperatorEq
+	operators["<"] = OperatorLt
+	operators["<="] = OperatorLe
+	operators[">"] = OperatorGt
+	operators[">="] = OperatorGe
+	operators["<<"] = OperatorLsh
+	operators[">>"] = OperatorRsh
+}
 
 const windowsLineSpererator = "\r\n"
 const commentIntroduction = "//"
@@ -85,6 +132,13 @@ func (C *CodeLexer) Lexer() ([]Token, error) {
 	buff := strings.Builder{}
 	for i := 0; i < len(C.code); i++ {
 		c := C.code[i]
+		safeInc := func() (rune, bool) {
+			i++
+			if i < len(C.code) {
+				return C.code[i], true
+			}
+			return 0, false
+		}
 		n, peeked := Peek(C.code, i+1)
 		if isNewLine(c) {
 			if isNewLine(n) {
@@ -115,8 +169,26 @@ func (C *CodeLexer) Lexer() ([]Token, error) {
 				C.append(Token{ParenClosed, ")", 0, 0, line})
 			case ',':
 				C.append(Token{Comma, ",", 0, 0, line})
-			case '=':
-				C.append(Token{Assignment, "=", 0, 0, line})
+			case '+', '-', '/', '*', '%', '=', '>', '<', '~', '!', '|', '&':
+				sign := string(c)
+				if isSpecialChar(n) {
+					sign += string(n)
+				}
+				if sign == "=" {
+					C.append(Token{Assignment, "=", 0, 0, line})
+					continue
+				}
+
+				var ok bool
+				var operator Operator
+				if operator, ok = operators[sign]; ok {
+					C.append(Token{OperatorType, sign, operator, 0, line})
+				} else {
+					return nil, fmt.Errorf("Invalid operator at line %d", line)
+				}
+				if ok {
+					i += len(sign) - 1
+				}
 			case '@':
 				C.append(Token{Scoper, "@", 0, 0, line})
 			case '.':
@@ -127,9 +199,13 @@ func (C *CodeLexer) Lexer() ([]Token, error) {
 
 		if isAlpha(c) {
 			buff.Reset()
-			for isAlpha(C.code[i]) {
-				buff.WriteRune(C.code[i])
-				i++
+			var inc bool
+			for isAlpha(c) {
+				buff.WriteRune(c)
+				c, inc = safeInc()
+				if !inc {
+					break
+				}
 			}
 			i--
 			val := buff.String()
@@ -230,6 +306,12 @@ func isSpecialChar(b rune) bool {
 	return b == '{' || b == '}' ||
 		b == '(' || b == ')' ||
 		b == ',' || b == '.' ||
+		b == '<' || b == '>' ||
+		b == '~' || b == '!' ||
+		b == '|' || b == '&' ||
+		b == '+' || b == '-' ||
+		b == '*' || b == '/' ||
+		b == '%' ||
 		isEqual(b) || isScoper(b)
 }
 

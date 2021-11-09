@@ -83,6 +83,19 @@ type MemberSelector struct {
 	*Meta
 }
 
+type UnaryExpression struct {
+	Operation tokens.Operator
+	Value     Node
+	*Meta
+}
+
+type BinaryExpression struct {
+	Operation tokens.Operator
+	Left      Node
+	Right     Node
+	*Meta
+}
+
 func walkTree(tree Node, f func(node Node)) {
 	f(tree)
 	switch n := tree.(type) {

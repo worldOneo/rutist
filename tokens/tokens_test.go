@@ -54,6 +54,18 @@ func TestCodeLexer_Lexer(t *testing.T) {
 			},
 			false,
 		},
+		{
+			"operators",
+			`a<b c+d c>=d ~a a||b`,
+			[]Token{
+				identifierToken("a", 0), {OperatorType, "<", OperatorLt, 0, 0}, identifierToken("b", 0),
+				identifierToken("c", 0), {OperatorType, "+", OperatorAdd, 0, 0}, identifierToken("d", 0),
+				identifierToken("c", 0), {OperatorType, ">=", OperatorGe, 0, 0}, identifierToken("d", 0),
+				{OperatorType, "~", OperatorNot, 0, 0}, identifierToken("a", 0),
+				identifierToken("a", 0), {OperatorType, "||", OperatorLor, 0, 0}, identifierToken("b", 0),
+			},
+			false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

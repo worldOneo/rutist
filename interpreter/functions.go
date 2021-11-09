@@ -67,7 +67,7 @@ func builtinModule(r *Runtime, args []Value) (Value, *Error) {
 	if len(args) != 1 {
 		return builtinThrow(r, []Value{String("Module: Requires exactly 1 parameter")})
 	}
-	f, ok := args[0].Members()[TypeRun]
+	f, ok := r.getNativeField(args[0].Type(), TypeRun)
 	if !ok {
 		return builtinThrow(r, []Value{String("Module: Parameter 1 must be runnable")})
 	}
@@ -77,6 +77,7 @@ func builtinModule(r *Runtime, args []Value) (Value, *Error) {
 	}
 
 	return r.CallFunction(fn, []Value{
+		args[0],
 		Function(func(r *Runtime, v []Value) (Value, *Error) {
 			if len(v) != 2 {
 				return builtinThrow(r, []Value{String("Module: Export requires exactly 2 parameters")})
@@ -88,11 +89,11 @@ func builtinModule(r *Runtime, args []Value) (Value, *Error) {
 	})
 }
 
-func builtinStr(R *Runtime, args []Value) (Value, *Error) {
+func builtinStr(r *Runtime, args []Value) (Value, *Error) {
 	if len(args) != 1 {
-		return builtinThrow(R, []Value{String("Str: Require exactly 1 parameter")})
+		return builtinThrow(r, []Value{String("Str: Require exactly 1 parameter")})
 	}
-	str, ok := args[0].Members()[TypeStr]
+	str, ok := r.getNativeField(args[0].Type(), TypeStr)
 	if !ok {
 		return String(fmt.Sprintf("%v", args[0])), nil
 	}
@@ -100,7 +101,7 @@ func builtinStr(R *Runtime, args []Value) (Value, *Error) {
 	if !funcOk {
 		return str, nil
 	}
-	return strFunc(R, args)
+	return strFunc(r, append([]Value{args[0]}, args...))
 }
 
 func builtinRun(R *Runtime, args []Value) (Value, *Error) {
