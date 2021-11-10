@@ -67,8 +67,8 @@ func builtinModule(r *Runtime, args []Value) (Value, *Error) {
 	if len(args) != 1 {
 		return builtinThrow(r, []Value{String("Module: Requires exactly 1 parameter")})
 	}
-	f, ok := r.getNativeField(args[0].Type(), TypeRun)
-	if !ok {
+	f := r.getNativeField(args[0], NativeRun)
+	if f == nil {
 		return builtinThrow(r, []Value{String("Module: Parameter 1 must be runnable")})
 	}
 	fn, ok := f.(Function)
@@ -93,8 +93,8 @@ func builtinStr(r *Runtime, args []Value) (Value, *Error) {
 	if len(args) != 1 {
 		return builtinThrow(r, []Value{String("Str: Require exactly 1 parameter")})
 	}
-	str, ok := r.getNativeField(args[0].Type(), TypeStr)
-	if !ok {
+	str := r.getNativeField(args[0], NativeStr)
+	if str == nil {
 		return String(fmt.Sprintf("%v", args[0])), nil
 	}
 	strFunc, funcOk := str.(Function)

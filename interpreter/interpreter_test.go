@@ -140,6 +140,39 @@ func TestRun_Status(t *testing.T) {
 			},
 			false,
 		},
+		{
+			"wrapped function",
+			args{ast.Parsep(tokens.Lexerp(`
+				a = Dict()
+				b = "test"
+				a.dict = Dict()
+				a.dict.value = b.len
+				v = a.dict.value()
+				print("Magik: %v", v)
+			`))},
+			func(r *Runtime) bool {
+				v := r.GetVar("v")
+				return v == Int(4)
+			},
+			false,
+		},
+		{
+			"deep nest",
+			args{ast.Parsep(tokens.Lexerp(`
+				a = Dict()
+				b = Dict()
+				c = (){ b }
+				a.c = c
+				a.c().value = "test".len
+				v = a.c().value()
+				print("Magik: %v", v)
+			`))},
+			func(r *Runtime) bool {
+				v := r.GetVar("v")
+				return v == Int(4)
+			},
+			false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

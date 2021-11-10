@@ -2,7 +2,6 @@ package interpreter
 
 import (
 	"fmt"
-	"strconv"
 
 	"github.com/worldOneo/rutist/ast"
 )
@@ -27,55 +26,16 @@ func New(file string) *Runtime {
 		map[Value]Value{
 			SpecialfFieldExport: Dict{},
 			SpecialFieldTypeMembers: Map{
-				Map{}.Type(): Map{
-					String("get"): Function(mapGet),
-					String("set"): Function(mapSet),
-					String("has"): Function(mapHas),
-				},
-				Dict{}.Type(): Map{
-					TypeSetMember: Function(func(r *Runtime, v []Value) (Value, *Error) {
-						v[0].(Dict)[v[1]] = v[2]
-						return nil, nil
-					}),
-					TypeGetMember: Function(func(r *Runtime, v []Value) (Value, *Error) {
-						return v[0].(Dict)[v[1]], nil
-					}),
-				},
-				String("").Type(): Map{
-					String("len"): Function(func(_ *Runtime, v []Value) (Value, *Error) { return Int(len(v[0].(String))), nil }),
-					TypeStr:       Function(func(_ *Runtime, v []Value) (Value, *Error) { return v[0], nil }),
-					TypeLen:       Function(func(_ *Runtime, v []Value) (Value, *Error) { return Int(len(v[0].(String))), nil }),
-					TypeBool:      Function(func(_ *Runtime, v []Value) (Value, *Error) { return Bool(v[0].(String) != ""), nil }),
-				},
-				Int(1).Type(): Map{
-					TypeBool: Function(func(r *Runtime, v []Value) (Value, *Error) { return Bool(v[0].(Int) != 0), nil }),
-					TypeStr:  Function(func(r *Runtime, v []Value) (Value, *Error) { return String(strconv.Itoa(int(v[0].(Int)))), nil }),
-				},
-				Float(0).Type(): Map{
-					TypeBool: Function(func(r *Runtime, v []Value) (Value, *Error) { return Bool(v[0].(Float) != 0.0), nil }),
-					TypeStr: Function(func(r *Runtime, v []Value) (Value, *Error) {
-						return String(strconv.FormatFloat(float64(v[0].(Float)), 'f', 7, 64)), nil
-					}),
-				},
-				Bool(true).Type(): Map{},
-				Function(builtinImport).Type(): Map{
-					TypeRun: Function(func(r *Runtime, v []Value) (Value, *Error) { return v[0].(Function)(r, v[1:]) }),
-				},
-				FuncDef{}.Type(): Map{
-					TypeRun: Function(func(r *Runtime, v []Value) (Value, *Error) {
-						return v[0].(*FuncDef).run(r, v[1:])
-					}),
-				},
-				Scoope{}.Type(): Map{
-					TypeRun: Function(func(r *Runtime, v []Value) (Value, *Error) { return r.Run(v[0].(*Scoope).node) }),
-				},
-				WrappedFunction{}.Type(): Map{
-					TypeRun: Function(func(r *Runtime, v []Value) (Value, *Error) {
-						w := v[0].(WrappedFunction)
-						args := append([]Value{w.this}, v[1:]...)
-						return w.f(r, args)
-					}),
-				},
+				Map{}.Type(): Map{},
+				Dict{}.Type():                  Map{},
+				String("").Type():              Map{},
+				Int(1).Type():                  Map{},
+				Float(0).Type():                Map{},
+				Bool(true).Type():              Map{},
+				Function(builtinImport).Type(): Map{},
+				FuncDef{}.Type():               Map{},
+				Scoope{}.Type():                Map{},
+				WrappedFunction{}.Type():       Map{},
 			},
 		},
 	}
@@ -131,8 +91,8 @@ func (R *Runtime) Run(program ast.Node) (Value, *Error) {
 		if err != nil {
 			return nil, err
 		}
-		operator, ok := R.getNativeField(left.Type(), operatorMagicType[node.Operation])
-		if !ok {
+		operator := R.getNativeField(left, operatorMagicType[node.Operation])
+		if operator == nil {
 			return nil, R.error("Invalid operator", node)
 		}
 		fn, ok := operator.(Function)
@@ -193,28 +153,27 @@ func (R *Runtime) getNativeFields(t String) Map {
 	return typeFields
 }
 
-func (R *Runtime) getNativeField(t String, field String) (Value, bool) {
-	n, ok := R.getNativeFields(t)[field]
-	return n, ok
+func (R *Runtime) getNativeField(v Value, field int) Value {
+	n := v.Natives()[field]
+	return n
 }
 
 func (R *Runtime) getDynamicMember(v Value, property Value) (Value, *Error) {
-	getMember, ok := R.getNativeField(v.Type(), TypeGetMember)
-	if !ok {
+	getMember := R.getNativeField(v, NativeGetMember)
+	if getMember == nil {
 		return nil, nil
 	}
 	f, ok := getMember.(Function)
+	if !ok {
+		return nil, &Error{fmt.Errorf("Invalid member")}
+	}
 	return f(R, []Value{v, property})
 }
 
 func (R *Runtime) getMember(v Value, field String) (Value, *Error) {
-	member, ok := R.getNativeField(v.Type(), field)
-	var err *Error
-	if !ok {
-		member, err = R.getDynamicMember(v, field)
-		if err != nil {
-			return nil, err
-		}
+	member, err := R.getDynamicMember(v, field)
+	if err != nil {
+		return nil, err
 	}
 	fn, ok := member.(Function)
 	if !ok {
@@ -269,8 +228,8 @@ func (R *Runtime) invokeExpression(node ast.Expression) (Value, *Error) {
 	if err != nil {
 		return nil, err
 	}
-	runnable, ok := R.getNativeField(value.Type(), TypeRun)
-	if !ok {
+	runnable := R.getNativeField(value, NativeRun)
+	if runnable == nil {
 		return nil, R.error("Invalid invocation", node)
 	}
 	function, ok := runnable.(Function)
@@ -285,8 +244,8 @@ func (R *Runtime) invokeExpression(node ast.Expression) (Value, *Error) {
 }
 
 func (R *Runtime) invokeValue(value Value) (Value, *Error) {
-	runnable, ok := R.getNativeField(value.Type(), TypeRun)
-	if !ok {
+	runnable := R.getNativeField(value, NativeRun)
+	if runnable == nil {
 		return nil, &Error{fmt.Errorf("Invalid invocation")}
 	}
 	function, ok := runnable.(Function)
@@ -316,23 +275,49 @@ func (R *Runtime) assignValue(val Value, node ast.Node) (Value, *Error) {
 		}
 		prop, ok := v.Property.(ast.Identifier)
 		if !ok {
-			return R.assignValue(val, v.Property)
+			return R.assignObjectProperty(obj, val, v.Property)
 		}
-		assign, err := R.getMember(obj, TypeSetMember)
+		return R.assignObject(obj, val, String(prop.Name))
+	}
+	return nil, R.error("Invalid assignment", node)
+}
+
+func (R *Runtime) assignObjectProperty(obj Value, val Value, node ast.Node) (Value, *Error) {
+	switch v := node.(type) {
+	case ast.Identifier:
+		return R.assignObject(obj, val, String(v.Name))
+	case ast.MemberSelector:
+		key, ok := v.Object.(ast.Identifier)
+		if !ok {
+			return nil, R.error("Invalid assignment", node)
+		}
+		member, err := R.getDynamicMember(obj, String(key.Name))
 		if err != nil {
 			return nil, err
 		}
-		assignFn, ok := R.getNativeField(assign.Type(), TypeRun)
+		prop, ok := v.Property.(ast.Identifier)
 		if !ok {
-			return nil, R.error("Invalid assignment", node)
+			return R.assignObjectProperty(member, val, v.Property)
 		}
-		fn, ok := assignFn.(Function)
-		if !ok {
-			return nil, R.error("Invalid assignment", node)
-		}
-		return R.CallFunction(fn, []Value{assign, String(prop.Name), val})
+		return R.assignObject(member, val, String(prop.Name))
 	}
 	return nil, R.error("Invalid assignment", node)
+}
+
+func (R *Runtime) assignObject(obj Value, val Value, prop Value) (Value, *Error) {
+	assign := R.getNativeField(obj, NativeSetMember)
+	if assign == nil {
+		return nil, &Error{fmt.Errorf("Invalid assignment")}
+	}
+	assignFn := R.getNativeField(assign, NativeRun)
+	if assignFn == nil {
+		return nil, &Error{fmt.Errorf("Invalid assignment")}
+	}
+	fn, ok := assignFn.(Function)
+	if !ok {
+		return nil, &Error{fmt.Errorf("Invalid assignment")}
+	}
+	return R.CallFunction(fn, []Value{assignFn, assign, obj, prop, val})
 }
 
 func (R *Runtime) error(msg string, node ast.Node) *Error {

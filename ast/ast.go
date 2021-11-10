@@ -73,7 +73,7 @@ func (P *Parser) checkAppendage(prev Node) (Node, error) {
 	switch peek.Type {
 	case tokens.Dot:
 		P.next()
-		val, err := P.pullValue()
+		val, err := P._pullValue()
 		if err != nil {
 			return nil, err
 		}
@@ -98,7 +98,7 @@ func (P *Parser) checkAppendage(prev Node) (Node, error) {
 		if err != nil {
 			return nil, err
 		}
-		return P.checkAppendage(BinaryExpression{peek.ValueInt, prev, node, NewMeta(peek)})
+		return BinaryExpression{peek.ValueInt, prev, node, NewMeta(peek)}, nil
 	}
 	return prev, nil
 }

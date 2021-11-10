@@ -151,9 +151,13 @@ func TestParse(t *testing.T) {
 				[]Node{
 					Assignment{
 						Identifier{"l", meta},
-						MemberSelector{
-							Expression{Identifier{"str", meta}, []Node{Identifier{"varString", meta}}, meta},
-							Expression{Identifier{"len", meta}, []Node{}, meta},
+						Expression{
+							MemberSelector{
+								Expression{Identifier{"str", meta}, []Node{Identifier{"varString", meta}}, meta},
+								Identifier{"len", meta},
+								meta,
+							},
+							[]Node{},
 							meta,
 						},
 						meta,
@@ -235,6 +239,34 @@ func TestParse(t *testing.T) {
 							String{"Magik: %v", meta},
 							Identifier{"v", meta},
 						},
+						meta,
+					},
+				},
+				meta,
+			},
+			false,
+		},
+		{
+			"Deep nest",
+			args{tokens.Lexerp(`
+			a.c().value = 1
+			`)},
+			Block{
+				[]Node{
+					Assignment{
+						MemberSelector{
+							Expression{
+								MemberSelector{
+									Identifier{"a", meta},
+									Identifier{"c", meta},
+									meta,
+								},
+								[]Node{},
+								meta},
+							Identifier{"value", meta},
+							meta,
+						},
+						Int{1, meta},
 						meta,
 					},
 				},

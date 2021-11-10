@@ -6,7 +6,6 @@ import (
 )
 
 type String string
-type Int int
 type Error struct {
 	Err error
 }
@@ -14,8 +13,6 @@ type Error struct {
 type Map map[Value]Value
 type Dict Map
 type Float float64
-type Function func(*Runtime, []Value) (Value, *Error)
-type Bool bool
 type Scoope struct {
 	node ast.Node
 }
@@ -23,6 +20,33 @@ type FuncDef struct {
 	args []ast.Identifier
 	node ast.Node
 }
+
+const (
+	NativeRun = iota
+	NativeStr
+	NativeLen
+	NativeBool
+	NativeSetMember
+	NativeGetMember
+	NativeAdd
+	NativeSub
+	NativeMul
+	NativeDiv
+	NativeMod
+	NativeOr
+	NativeAnd
+	NativeXor
+	NativeNot
+	NativeEq
+	NativeLt
+	NativeLe
+	NativeGt
+	NativeGe
+	NativeLsh
+	NativeRsh
+)
+
+type NativeMap [NativeRsh]Value
 
 const (
 	TypeRun       = String("__run__")
@@ -49,100 +73,29 @@ const (
 	TypeRsh       = String("__rsh__")
 )
 
-var operatorMagicType = map[tokens.Operator]String{}
+var operatorMagicType = map[tokens.Operator]int{}
 
 func init() {
-	operatorMagicType[tokens.OperatorAdd] = TypeAdd
-	operatorMagicType[tokens.OperatorSub] = TypeSub
-	operatorMagicType[tokens.OperatorMul] = TypeMul
-	operatorMagicType[tokens.OperatorDiv] = TypeDiv
-	operatorMagicType[tokens.OperatorMod] = TypeMod
-	operatorMagicType[tokens.OperatorOr] = TypeOr
-	operatorMagicType[tokens.OperatorAnd] = TypeAnd
-	operatorMagicType[tokens.OperatorXor] = TypeXor
-	operatorMagicType[tokens.OperatorNot] = TypeNot
-	operatorMagicType[tokens.OperatorEq] = TypeEq
-	operatorMagicType[tokens.OperatorLt] = TypeLt
-	operatorMagicType[tokens.OperatorLe] = TypeLe
-	operatorMagicType[tokens.OperatorGt] = TypeGt
-	operatorMagicType[tokens.OperatorGe] = TypeGe
-	operatorMagicType[tokens.OperatorLsh] = TypeLsh
-	operatorMagicType[tokens.OperatorRsh] = TypeRsh
+	operatorMagicType[tokens.OperatorAdd] = NativeAdd
+	operatorMagicType[tokens.OperatorSub] = NativeSub
+	operatorMagicType[tokens.OperatorMul] = NativeMul
+	operatorMagicType[tokens.OperatorDiv] = NativeDiv
+	operatorMagicType[tokens.OperatorMod] = NativeMod
+	operatorMagicType[tokens.OperatorOr] = NativeOr
+	operatorMagicType[tokens.OperatorAnd] = NativeAnd
+	operatorMagicType[tokens.OperatorXor] = NativeXor
+	operatorMagicType[tokens.OperatorNot] = NativeNot
+	operatorMagicType[tokens.OperatorEq] = NativeEq
+	operatorMagicType[tokens.OperatorLt] = NativeLt
+	operatorMagicType[tokens.OperatorLe] = NativeLe
+	operatorMagicType[tokens.OperatorGt] = NativeGt
+	operatorMagicType[tokens.OperatorGe] = NativeGe
+	operatorMagicType[tokens.OperatorLsh] = NativeLsh
+	operatorMagicType[tokens.OperatorRsh] = NativeRsh
 }
 
-func (F *FuncDef) run(r *Runtime, v []Value) (Value, *Error) {
-	for i := 0; i < len(F.args); i++ {
-		if i > len(v) {
-			break
-		}
-		r.CurrentScope().variables[F.args[i].Name] = v[i]
-	}
-	return r.Run(F.node)
-}
+var floatNatives = NativeMap{}
 
-func (S String) len(_ *Runtime, _ []Value) (Value, *Error) {
-	return Int(len(S)), nil
-}
-
-func (FuncDef) Type() String {
-	return "builtin+funcdef"
-}
-
-func (String) Type() String {
-	return "builtin+string"
-}
-
-func (Function) Type() String {
-	return "builtin+function"
-}
-
-func (Int) Type() String {
-	return "builtin+integer"
-}
-
-func (Float) Type() String {
-	return "builtin+float"
-}
-
-func (Bool) Type() String {
-	return "builtin+bool"
-}
-
-func (Scoope) Type() String {
-	return "builtin+scope"
-}
-
-func (Error) Type() String {
-	return "buitin+error"
-}
-
-func mapGet(r *Runtime, v []Value) (Value, *Error) {
-	if len(v) != 2 {
-		return builtinThrow(r, []Value{String("Map: Get Requires exactly 1 parameter")})
-	}
-	return v[0].(Map)[v[1]], nil
-}
-
-func mapSet(r *Runtime, v []Value) (Value, *Error) {
-	if len(v) != 3 {
-		return builtinThrow(r, []Value{String("Map: Set Requires exactly 2 parameters")})
-	}
-	v[0].(Map)[v[1]] = v[2]
-	return nil, nil
-}
-
-func mapHas(r *Runtime, v []Value) (Value, *Error) {
-	if len(v) != 2 {
-		return builtinThrow(r, []Value{String("Map: Has Requires exactly 1 parameter")})
-	}
-	_, ok := v[0].(Map)[v[1]]
-	return Bool(ok), nil
-}
-
-func (Map) Type() String {
-	return "builtin+map"
-}
-
-func (Dict) Type() String {
-	return "builtin+dict"
-}
+var this = Function(func (_ *Runtime, v []Value) (Value, *Error) {
+	return v[0], nil
+})

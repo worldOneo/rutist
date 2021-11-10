@@ -4,6 +4,7 @@ type MemberDict = Map
 
 type Value interface {
 	Type() String
+	Natives() NativeMap
 }
 
 type Scope struct {
