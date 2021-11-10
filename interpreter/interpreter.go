@@ -15,7 +15,6 @@ type Runtime struct {
 
 const (
 	SpecialfFieldExport     = String("export")
-	SpecialFieldTypeMembers = String("typemembers")
 )
 
 func New(file string) *Runtime {
@@ -25,18 +24,6 @@ func New(file string) *Runtime {
 		0,
 		map[Value]Value{
 			SpecialfFieldExport: Dict{},
-			SpecialFieldTypeMembers: Map{
-				Map{}.Type(): Map{},
-				Dict{}.Type():                  Map{},
-				String("").Type():              Map{},
-				Int(1).Type():                  Map{},
-				Float(0).Type():                Map{},
-				Bool(true).Type():              Map{},
-				Function(builtinImport).Type(): Map{},
-				FuncDef{}.Type():               Map{},
-				Scoope{}.Type():                Map{},
-				WrappedFunction{}.Type():       Map{},
-			},
 		},
 	}
 }
@@ -146,11 +133,6 @@ func (R *Runtime) CallFunction(function Function, args []Value) (Value, *Error) 
 	val, err := function(R, args)
 	R.ScopeIndex--
 	return val, err
-}
-
-func (R *Runtime) getNativeFields(t String) Map {
-	typeFields := R.SpecialFields[SpecialFieldTypeMembers].(Map)[t].(Map)
-	return typeFields
 }
 
 func (R *Runtime) getNativeField(v Value, field int) Value {
