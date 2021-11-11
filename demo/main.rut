@@ -38,9 +38,10 @@ map = Map()
 map.set("test", "My name is")
 print("%s bob\n", map.get("test"))
 test = import("./test.rut")
+dict = import("../lib/dict.rut")
 print("Imported: %d\n", test.value)
 
-a = Dict()
+a = dict.New()
 a.value = 1
 v = a.value
 print("Magic assign %v", v)

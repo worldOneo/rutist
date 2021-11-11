@@ -19,6 +19,7 @@ func init() {
 	builtins["str"] = builtinStr
 	builtins["module"] = builtinModule
 	builtins["import"] = builtinImport
+	builtins["class"] = builtinClass
 	builtins["Map"] = func(r *Runtime, v []Value) (Value, *Error) { return Map{}, nil }
 	builtins["Dict"] = func(r *Runtime, v []Value) (Value, *Error) { return Dict{}, nil }
 }
@@ -104,16 +105,11 @@ func builtinStr(r *Runtime, args []Value) (Value, *Error) {
 	return strFunc(r, append([]Value{args[0]}, args...))
 }
 
-func builtinRun(R *Runtime, args []Value) (Value, *Error) {
-	if len(args) != 1 {
-		return builtinThrow(R, []Value{String("Run: Require exactly 1 parameter")})
+func builtinRun(r *Runtime, args []Value) (Value, *Error) {
+	if len(args) < 1 {
+		return builtinThrow(r, []Value{String("Run: Require at least 1 parameter")})
 	}
-
-	scope, ok := args[0].(*Scoope)
-	if !ok {
-		return builtinThrow(R, []Value{String("Run: Parameter1 must be scope")})
-	}
-	return R.Run(scope.node)
+	return r.invokeValue(args[0], args[1:])
 }
 
 func builtinThrow(_ *Runtime, args []Value) (Value, *Error) {
@@ -129,25 +125,17 @@ func builtinTrycatch(r *Runtime, args []Value) (Value, *Error) {
 		return nil, nil
 	}
 
-	try, ok := args[0].(*Scoope)
-	if !ok {
-		return nil, &Error{fmt.Errorf("Try: Parameter1 must be type scope")}
-	}
-
 	if len(args) == 1 {
-		_, err := builtinRun(r, []Value{try})
+		_, err := r.invokeValue(args[0], []Value{})
 		if err != nil {
 			return err, nil
 		}
 		return nil, nil
 	}
-	catch, ok := args[1].(*FuncDef)
-	if !ok {
-		return nil, &Error{fmt.Errorf("Try-Catch: Parameter2 must be type funcdef")}
-	}
-	_, err := builtinRun(r, []Value{try})
+
+	_, err := r.invokeValue(args[0], []Value{})
 	if err != nil {
-		return catch.run(r, []Value{err})
+		return r.invokeValue(args[1], []Value{err})
 	}
 	return nil, nil
 }

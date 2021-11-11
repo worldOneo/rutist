@@ -1,6 +1,13 @@
 package interpreter
 
+import "github.com/worldOneo/rutist/ast"
+
 var funcdefNatives = NativeMap{}
+
+type FuncDef struct {
+	args []ast.Identifier
+	node ast.Node
+}
 
 func (FuncDef) Type() String {
 	return "builtin+funcdef"
@@ -18,7 +25,7 @@ func (FuncDef) Natives() NativeMap {
 
 func (F *FuncDef) run(r *Runtime, v []Value) (Value, *Error) {
 	for i := 0; i < len(F.args); i++ {
-		if i > len(v) {
+		if i >= len(v) {
 			break
 		}
 		r.CurrentScope().variables[F.args[i].Name] = v[i]

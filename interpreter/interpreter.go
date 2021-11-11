@@ -14,7 +14,7 @@ type Runtime struct {
 }
 
 const (
-	SpecialfFieldExport     = String("export")
+	SpecialfFieldExport = String("export")
 )
 
 func New(file string) *Runtime {
@@ -98,7 +98,7 @@ func (R *Runtime) Run(program ast.Node) (Value, *Error) {
 	case ast.String:
 		return String(node.Value), nil
 	case ast.Scope:
-		return &Scoope{node.Body}, nil
+		return &FuncDef{[]ast.Identifier{}, node.Body}, nil
 	case ast.FunctionDefinition:
 		return &FuncDef{node.ArgList, node.Scope}, nil
 	case ast.MemberSelector:
@@ -107,14 +107,12 @@ func (R *Runtime) Run(program ast.Node) (Value, *Error) {
 	return nil, nil
 }
 
-const null = Int(0)
-
 func (R *Runtime) GetVar(name string) Value {
 	v, ok := R.CurrentScope().variables[name]
 	if !ok {
 		v, ok = builtins[name]
 		if !ok {
-			return null
+			return nil
 		}
 	}
 	return v
@@ -157,6 +155,10 @@ func (R *Runtime) getMember(v Value, field String) (Value, *Error) {
 	if err != nil {
 		return nil, err
 	}
+	fd, ok := member.(*FuncDef)
+	if ok {
+		return wrappMemberFunction(v, fd.run), nil
+	}
 	fn, ok := member.(Function)
 	if !ok {
 		return member, nil
@@ -166,7 +168,7 @@ func (R *Runtime) getMember(v Value, field String) (Value, *Error) {
 
 func (R *Runtime) getMemberProperty(v Value, property ast.Node) (Value, *Error) {
 	if v == nil {
-		return nil, R.error("Member: value is nil exist", property)
+		return nil, R.error("Member: value is nil", property)
 	}
 	switch prop := property.(type) {
 	case ast.Identifier:
@@ -177,7 +179,7 @@ func (R *Runtime) getMemberProperty(v Value, property ast.Node) (Value, *Error) 
 		if err != nil {
 			return nil, err
 		}
-		return R.invokeValue(member)
+		return R.invokeValue(member, []Value{})
 	case ast.MemberSelector:
 		member, err := R.getMemberProperty(v, prop.Object)
 		if err != nil {
@@ -225,7 +227,7 @@ func (R *Runtime) invokeExpression(node ast.Expression) (Value, *Error) {
 	return R.invokeFunction(function, args)
 }
 
-func (R *Runtime) invokeValue(value Value) (Value, *Error) {
+func (R *Runtime) invokeValue(value Value, args []Value) (Value, *Error) {
 	runnable := R.getNativeField(value, NativeRun)
 	if runnable == nil {
 		return nil, &Error{fmt.Errorf("Invalid invocation")}
@@ -234,7 +236,7 @@ func (R *Runtime) invokeValue(value Value) (Value, *Error) {
 	if !ok {
 		return nil, &Error{fmt.Errorf("Invalid invocation")}
 	}
-	return R.invokeFunction(function, []Value{value})
+	return R.invokeFunction(function, append([]Value{value}, args...))
 }
 
 func (R *Runtime) resolveMemberSelector(node ast.MemberSelector) (Value, *Error) {

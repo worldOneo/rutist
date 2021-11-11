@@ -66,6 +66,12 @@ func TestCodeLexer_Lexer(t *testing.T) {
 			},
 			false,
 		},
+		{
+			"comment",
+			`// test`,
+			[]Token{},
+			false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

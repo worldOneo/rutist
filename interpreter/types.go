@@ -1,28 +1,16 @@
 package interpreter
 
 import (
-	"github.com/worldOneo/rutist/ast"
 	"github.com/worldOneo/rutist/tokens"
 )
-
-type String string
-type Error struct {
-	Err error
-}
 
 type Map map[Value]Value
 type Dict Map
 type Float float64
-type Scoope struct {
-	node ast.Node
-}
-type FuncDef struct {
-	args []ast.Identifier
-	node ast.Node
-}
 
 const (
 	NativeRun = iota
+	NativeInit
 	NativeStr
 	NativeLen
 	NativeBool
@@ -50,6 +38,7 @@ type NativeMap [NativeRsh]Value
 
 const (
 	TypeRun       = String("__run__")
+	TypeInit    = String("__init__")
 	TypeStr       = String("__str__")
 	TypeLen       = String("__len__")
 	TypeBool      = String("__bool__")
@@ -75,6 +64,8 @@ const (
 
 var operatorMagicType = map[tokens.Operator]int{}
 
+var magicFuncNativeMap = map[String]int{}
+
 func init() {
 	operatorMagicType[tokens.OperatorAdd] = NativeAdd
 	operatorMagicType[tokens.OperatorSub] = NativeSub
@@ -92,10 +83,34 @@ func init() {
 	operatorMagicType[tokens.OperatorGe] = NativeGe
 	operatorMagicType[tokens.OperatorLsh] = NativeLsh
 	operatorMagicType[tokens.OperatorRsh] = NativeRsh
+
+	magicFuncNativeMap[TypeRun] = NativeRun
+	magicFuncNativeMap[TypeInit] = NativeInit
+	magicFuncNativeMap[TypeStr] = NativeStr
+	magicFuncNativeMap[TypeLen] = NativeLen
+	magicFuncNativeMap[TypeBool] = NativeBool
+	magicFuncNativeMap[TypeSetMember] = NativeSetMember
+	magicFuncNativeMap[TypeGetMember] = NativeGetMember
+	magicFuncNativeMap[TypeAdd] = NativeAdd
+	magicFuncNativeMap[TypeSub] = NativeSub
+	magicFuncNativeMap[TypeMul] = NativeMul
+	magicFuncNativeMap[TypeDiv] = NativeDiv
+	magicFuncNativeMap[TypeMod] = NativeMod
+	magicFuncNativeMap[TypeOr] = NativeOr
+	magicFuncNativeMap[TypeAnd] = NativeAnd
+	magicFuncNativeMap[TypeXor] = NativeXor
+	magicFuncNativeMap[TypeNot] = NativeNot
+	magicFuncNativeMap[TypeEq] = NativeEq
+	magicFuncNativeMap[TypeLt] = NativeLt
+	magicFuncNativeMap[TypeLe] = NativeLe
+	magicFuncNativeMap[TypeGt] = NativeGt
+	magicFuncNativeMap[TypeGe] = NativeGe
+	magicFuncNativeMap[TypeLsh] = NativeLsh
+	magicFuncNativeMap[TypeRsh] = NativeRsh
 }
 
 var floatNatives = NativeMap{}
 
-var this = Function(func (_ *Runtime, v []Value) (Value, *Error) {
+var this = Function(func(_ *Runtime, v []Value) (Value, *Error) {
 	return v[0], nil
 })

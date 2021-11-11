@@ -85,7 +85,7 @@ func TestRun_Status(t *testing.T) {
 			`))},
 			func(r *Runtime) bool {
 				handle := r.GetVar("handle")
-				if handle == null {
+				if handle == nil {
 					return false
 				}
 				h, o := handle.(*FuncDef)
@@ -103,7 +103,7 @@ func TestRun_Status(t *testing.T) {
 			`))},
 			func(r *Runtime) bool {
 				v := r.GetVar("var")
-				if v == null {
+				if v == nil {
 					return false
 				}
 				return v.(String) == String("test")
@@ -170,6 +170,72 @@ func TestRun_Status(t *testing.T) {
 			func(r *Runtime) bool {
 				v := r.GetVar("v")
 				return v == Int(4)
+			},
+			false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			r := New("test.go")
+			_, err := r.Run(tt.args.ast)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("Run() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !tt.want(r) {
+				t.Error("Condition failed")
+			}
+		})
+	}
+}
+
+func TestRun_Abstract(t *testing.T) {
+	type args struct {
+		ast ast.Node
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    func(*Runtime) bool
+		wantErr bool
+	}{
+		{
+			"Class Def",
+			args{
+				ast: ast.Parsep(tokens.Lexerp(`
+					init = class((def) {
+						def("__init__", (self, name) {
+							self._name = name
+						})
+
+						def("name", (self) { self._name })
+					})
+
+					inst = init("test")
+					test = inst.name()
+				`)),
+			},
+			func(r *Runtime) bool {
+				t := r.GetVar("test")
+				return t != nil && t.(String) == "test"
+			},
+			false,
+		},
+		{
+			"Native Overload",
+			args{
+				ast: ast.Parsep(tokens.Lexerp(`
+					init = class((def) {
+						def("__getmember__", (self, member) { member })
+					})
+
+					inst = init()
+					test = inst.name
+				`)),
+			},
+			func(r *Runtime) bool {
+				t := r.GetVar("test")
+				return t != nil && t.(String) == "name"
 			},
 			false,
 		},

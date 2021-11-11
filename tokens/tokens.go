@@ -155,6 +155,7 @@ func (C *CodeLexer) Lexer() ([]Token, error) {
 
 		if isLineComment(c, n) {
 			lineComment = true
+			continue
 		}
 
 		if isSpecialChar(c) {
