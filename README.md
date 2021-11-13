@@ -1,3 +1,3 @@
 # Rutist scripting language
 
-Purpose unclear
+Proof of concept keywordless scripting language.

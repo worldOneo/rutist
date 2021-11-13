@@ -70,7 +70,7 @@ func (R *Runtime) Run(program ast.Node) (Value, *Error) {
 		}
 		return R.assignValue(val, node.Identifier)
 	case ast.BinaryExpression:
-		left, err := R.Run(node.Right)
+		left, err := R.Run(node.Left)
 		if err != nil {
 			return nil, err
 		}
@@ -86,7 +86,7 @@ func (R *Runtime) Run(program ast.Node) (Value, *Error) {
 		if !ok {
 			return nil, R.error("Invalid operator", node)
 		}
-		return R.CallFunction(fn, []Value{right, left})
+		return R.CallFunction(fn, []Value{left, right})
 	case ast.Identifier:
 		return R.GetVar(node.Name), nil
 	case ast.Float:

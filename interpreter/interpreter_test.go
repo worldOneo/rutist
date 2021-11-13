@@ -173,6 +173,49 @@ func TestRun_Status(t *testing.T) {
 			},
 			false,
 		},
+		{
+			"Binary Operators",
+			args{ast.Parsep(tokens.Lexerp(`
+			a = 1+2
+			b = a-1
+			c = a>1
+			`))},
+			func(r *Runtime) bool {
+				a := r.GetVar("a")
+				b := r.GetVar("b")
+				c := r.GetVar("c")
+				return a == Int(3) && b == Int(2) && c == Bool(true)
+			},
+			false,
+		},
+		{
+			"is nil",
+			args{ast.Parsep(tokens.Lexerp(`
+			a = isNil(a)
+			b = isNil(a)
+			`))},
+			func(r *Runtime) bool {
+				a := r.GetVar("a")
+				b := r.GetVar("b")
+				return a == Bool(true) && b == Bool(false)
+			},
+			false,
+		},
+		{
+			"if",
+			args{ast.Parsep(tokens.Lexerp(`
+			a = if({true}, { 1 }).value
+			b = if({false},{ 1 }).elseif({true}, { 2 }).value
+			c = if({false},{ 1 }).elseif({false}, { 2 }).else({ 3 }).value
+			`))},
+			func(r *Runtime) bool {
+				a := r.GetVar("a")
+				b := r.GetVar("b")
+				c := r.GetVar("c")
+				return a == Int(1) && b == Int(2) && c == Int(3)
+			},
+			false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

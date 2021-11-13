@@ -20,8 +20,19 @@ func init() {
 	builtins["module"] = builtinModule
 	builtins["import"] = builtinImport
 	builtins["class"] = builtinClass
+	builtins["isNil"] = builtinIsNil
+	builtins["if"] = builtinIf
 	builtins["Map"] = func(r *Runtime, v []Value) (Value, *Error) { return Map{}, nil }
 	builtins["Dict"] = func(r *Runtime, v []Value) (Value, *Error) { return Dict{}, nil }
+}
+
+func builtinIsNil(r *Runtime, args []Value) (Value, *Error) {
+	for i := 0; i<len(args); i++ {
+		if args[i] == nil {
+			return Bool(true), nil
+		}
+	}
+	return Bool(false), nil
 }
 
 func builtinImport(r *Runtime, args []Value) (Value, *Error) {
@@ -109,7 +120,11 @@ func builtinRun(r *Runtime, args []Value) (Value, *Error) {
 	if len(args) < 1 {
 		return builtinThrow(r, []Value{String("Run: Require at least 1 parameter")})
 	}
-	return r.invokeValue(args[0], args[1:])
+	runnable := r.getNativeField(args[0], NativeRun)
+	if fn, ok := runnable.(Function); ok {
+		return fn(r, args)
+	}
+	return builtinThrow(r, []Value{String("Run: Param 1 must be runnable")})
 }
 
 func builtinThrow(_ *Runtime, args []Value) (Value, *Error) {

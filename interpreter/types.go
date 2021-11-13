@@ -34,11 +34,11 @@ const (
 	NativeRsh
 )
 
-type NativeMap [NativeRsh]Value
+type NativeMap [NativeRsh + 1]Value
 
 const (
 	TypeRun       = String("__run__")
-	TypeInit    = String("__init__")
+	TypeInit      = String("__init__")
 	TypeStr       = String("__str__")
 	TypeLen       = String("__len__")
 	TypeBool      = String("__bool__")
