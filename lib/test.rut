@@ -1,30 +1,37 @@
 test = class((def) {
   def("__init__", (self, name) {
     self.name = name
+    self.testN = 0
   })
 
   def("expect", (self, run) {
+    self.testN = self.testN+1
     self.val = run()
     self
   })
 
   def("toBe", (self, val) {
     if({ val == self.val }, {
-      print("Test '%s' passed\n", self.name)
+      self.__pass()
     }).else({
-      print("Test '%s' failed: expected %v got %v\n", self.name, val, self.val)
+      print("Test '%s' (%d) failed: expected %v got %v\n", self.name, self.testN, val, self.val)
     })
     self
   })
 
   def("expectErr", (self, run) {
+    self.testN = self.testN+1
     err = try(run)
     if({ isNil(err) }, {
-      print("Test '%s' failed: expected error\n", self.name)
+      print("Test '%s' (%d) failed: expected error\n", self.name, self.testN)
     }).else({
-      print("Test '%s' passed\n", self.name)
+      self.__pass()
     })
     self
+  })
+
+  def("__pass", (self) {
+    print("Test '%s' (%d) passed\n", self.name, self.testN)
   })
 })
 

@@ -21,6 +21,23 @@ list = class((def) {
       throw("List: Index out of bounds")
     }).value
   })
+
+  def("delete", (self, index) {
+    if({ index == 0 && !isNil(self.next) }, {
+      val = self.val
+      if({ !isNil(self.next.next )}, {
+        self.val = self.next.val
+        self.next = self.next.next
+      }).else({
+        self.val = nil
+      })
+      val
+    }).elseif({ !isNil(self.next) }, {
+      self.next.delete(index-1)
+    }).else({
+      throw("List: Index out of bounds")
+    }).value
+  })
 })
 
 module((export) {
