@@ -1,7 +1,6 @@
 package interpreter
 
 import (
-	"fmt"
 	"reflect"
 	"testing"
 
@@ -41,9 +40,8 @@ func TestRun_Status(t *testing.T) {
 				`)),
 			},
 			func(r *Runtime) bool {
-				fmt.Printf("%v", r.CurrentScope())
 				v := r.GetVar("err").(*Error)
-				_, err := builtinThrow(r, []Value{String("This is an error")})
+				_, err := builtinThrow(r, []Value{String("This is an error\n\tat constant.go:4")})
 				return v.Err.Error() == err.Err.Error()
 			},
 			false,
@@ -214,12 +212,27 @@ func TestRun_Status(t *testing.T) {
 				b := r.GetVar("b")
 				c := r.GetVar("c")
 				d := r.GetVar("d")
-				return a == Int(1) && b == Int(2) && c == Int(3) &&  d == Int(4)
+				return a == Int(1) && b == Int(2) && c == Int(3) && d == Int(4)
+			},
+			false,
+		},
+		{
+			"while",
+			args{ast.Parsep(tokens.Lexerp(`
+			i = 10
+			while({ i > 0}, {
+				i = i-1
+			})
+			b = i
+			`))},
+			func(r *Runtime) bool {
+				b := r.GetVar("b")
+				return b == Int(0)
 			},
 			false,
 		},
 	}
-	for _, tt := range tests {
+	for _, tt := range tests[11:] {
 		t.Run(tt.name, func(t *testing.T) {
 			r := New("test.go")
 			_, err := r.Run(tt.args.ast)

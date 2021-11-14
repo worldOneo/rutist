@@ -26,6 +26,9 @@ func (FuncDef) Natives() NativeMap {
 
 func (F *FuncDef) run(r *Runtime, v []Value) (Value, *Error) {
 	for k, v := range F.captured {
+		if r.GetVar(k) != nil {
+			continue
+		}
 		r.CurrentScope().variables[k] = v
 	}
 	for i := 0; i < len(F.args); i++ {

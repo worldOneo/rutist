@@ -22,6 +22,7 @@ func init() {
 	builtins["class"] = builtinClass
 	builtins["isNil"] = builtinIsNil
 	builtins["if"] = builtinIf
+	builtins["while"] = builtinWhile
 	builtins["Map"] = func(r *Runtime, v []Value) (Value, *Error) { return Map{}, nil }
 	builtins["Dict"] = func(r *Runtime, v []Value) (Value, *Error) { return Dict{}, nil }
 }
@@ -100,6 +101,7 @@ func builtinModule(r *Runtime, args []Value) (Value, *Error) {
 		}),
 	})
 }
+
 
 func builtinStr(r *Runtime, args []Value) (Value, *Error) {
 	if len(args) != 1 {

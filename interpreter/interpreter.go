@@ -64,6 +64,10 @@ func (R *Runtime) Run(program ast.Node) (Value, *Error) {
 		identifier, ok := node.Identifier.(ast.Identifier)
 		lazy := Lazy()
 		if ok {
+			current := R.GetVar(identifier.Name)
+			if current != nil {
+				lazy.WakeUp(current)
+			}
 			R.CurrentScope().variables[identifier.Name] = lazy
 		}
 		val, err := R.Run(node.Value)
@@ -152,14 +156,23 @@ func (R *Runtime) CopyLocals() Locals {
 	return new
 }
 
-func (R *Runtime) CallFunction(function Function, args []Value) (Value, *Error) {
+func (R *Runtime) raiseScope() {
 	R.ScopeIndex++
 	if R.ScopeIndex >= len(R.Scopes) {
 		R.Scopes = append(R.Scopes, nil)
 	}
 	R.Scopes[R.ScopeIndex] = NewScope()
-	val, err := function(R, args)
+}
+
+func (R *Runtime) lowerScope() {
+	R.Scopes[R.ScopeIndex] = nil
 	R.ScopeIndex--
+}
+
+func (R *Runtime) CallFunction(function Function, args []Value) (Value, *Error) {
+	R.raiseScope()
+	val, err := function(R, args)
+	R.lowerScope()
 	return val, err
 }
 
