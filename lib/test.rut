@@ -1,0 +1,33 @@
+test = class((def) {
+  def("__init__", (self, name) {
+    self.name = name
+  })
+
+  def("expect", (self, run) {
+    self.val = run()
+    self
+  })
+
+  def("toBe", (self, val) {
+    if({ val == self.val }, {
+      print("Test '%s' passed\n", self.name)
+    }).else({
+      print("Test '%s' failed: expected %v got %v\n", self.name, val, self.val)
+    })
+    self
+  })
+
+  def("expectErr", (self, run) {
+    err = try(run)
+    if({ isNil(err) }, {
+      print("Test '%s' failed: expected error\n", self.name)
+    }).else({
+      print("Test '%s' passed\n", self.name)
+    })
+    self
+  })
+})
+
+module((export) {
+  export("called", test)
+})

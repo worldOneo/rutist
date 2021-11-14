@@ -1,0 +1,25 @@
+test = import("./test.rut")
+list = import("./list.rut")
+
+
+test.called("list push")
+
+  .expect({
+    l = list.New()
+    l.push(1)
+    l.get(0)
+  }).toBe(1)
+
+  .expect({
+    l = list.New()
+    l.push(1)
+    l.push(2)
+    l.get(1)
+  }).toBe(2)
+
+test.called("list get")
+  .expectErr({
+    l = list.New()
+    l.push(1)
+    l.get(1)
+  })

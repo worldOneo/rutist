@@ -6,14 +6,14 @@ list = class((def) {
   def("push", (self, val) {
     if({ isNil(self.next) }, {
       self.val = val
-      self.next = list(val)
+      self.next = list()
     }).else({
       self.next.push(val)
     })
   })
 
   def("get", (self, index) {
-    if({ index == 0 }, {
+    if({ index == 0 && !isNil(self.next) }, {
       self.val
     }).elseif({ !isNil(self.next) }, {
       self.next.get(index-1)
