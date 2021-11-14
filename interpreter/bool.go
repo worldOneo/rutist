@@ -12,6 +12,12 @@ func (Bool) Type() String {
 	return "builtin+bool"
 }
 
+func boolWrapUnary(f func(a bool) Value) Function {
+	return func(r *Runtime, v []Value) (Value, *Error) {
+		return f(bool(v[0].(Bool))), nil
+	}
+}
+
 func init() {
 	boolNatives[NativeBool] = this
 	boolNatives[NativeStr] = Function(func(r *Runtime, v []Value) (Value, *Error) {
@@ -20,4 +26,6 @@ func init() {
 		}
 		return String("false"), nil
 	})
+
+	boolNatives[NativeNot] = boolWrapUnary(func(a bool) Value { return Bool(!a) })
 }

@@ -20,7 +20,7 @@ const (
 func New(file string) *Runtime {
 	return &Runtime{
 		file,
-		[]*Scope{NewScope(map[string]Value{})},
+		[]*Scope{NewScope()},
 		0,
 		map[Value]Value{
 			SpecialfFieldExport: Dict{},
@@ -37,12 +37,9 @@ func Run(file string, ast ast.Node) (Value, error) {
 	return val, err.Err
 }
 
-func NewScope(capture map[string]Value) *Scope {
+func NewScope() *Scope {
 	scope := &Scope{
-		variables: map[string]Value{},
-	}
-	for k, v := range capture {
-		scope.variables[k] = v
+		variables: make(Locals),
 	}
 	return scope
 }
@@ -64,9 +61,17 @@ func (R *Runtime) Run(program ast.Node) (Value, *Error) {
 	case ast.Expression:
 		return R.invokeExpression(node)
 	case ast.Assignment:
+		identifier, ok := node.Identifier.(ast.Identifier)
+		lazy := Lazy()
+		if ok {
+			R.CurrentScope().variables[identifier.Name] = lazy
+		}
 		val, err := R.Run(node.Value)
 		if err != nil {
 			return nil, err
+		}
+		if ok {
+			lazy.WakeUp(val)
 		}
 		return R.assignValue(val, node.Identifier)
 	case ast.BinaryExpression:
@@ -87,6 +92,20 @@ func (R *Runtime) Run(program ast.Node) (Value, *Error) {
 			return nil, R.error("Invalid operator", node)
 		}
 		return R.CallFunction(fn, []Value{left, right})
+	case ast.UnaryExpression:
+		val, err := R.Run(node.Value)
+		if err != nil {
+			return nil, err
+		}
+		operator := R.getNativeField(val, operatorMagicType[node.Operation])
+		if operator == nil {
+			return nil, R.error("Invalid operator", node)
+		}
+		fn, ok := operator.(Function)
+		if !ok {
+			return nil, R.error("Invalid operator", node)
+		}
+		return R.CallFunction(fn, []Value{val})
 	case ast.Identifier:
 		return R.GetVar(node.Name), nil
 	case ast.Float:
@@ -98,9 +117,9 @@ func (R *Runtime) Run(program ast.Node) (Value, *Error) {
 	case ast.String:
 		return String(node.Value), nil
 	case ast.Scope:
-		return &FuncDef{[]ast.Identifier{}, node.Body}, nil
+		return &FuncDef{[]ast.Identifier{}, node.Body, R.CopyLocals()}, nil
 	case ast.FunctionDefinition:
-		return &FuncDef{node.ArgList, node.Scope}, nil
+		return &FuncDef{node.ArgList, node.Scope, R.CopyLocals()}, nil
 	case ast.MemberSelector:
 		return R.resolveMemberSelector(node)
 	}
@@ -115,6 +134,9 @@ func (R *Runtime) GetVar(name string) Value {
 			return nil
 		}
 	}
+	if lazy, ok := v.(*LazyObject); ok {
+		return lazy.Resolve()
+	}
 	return v
 }
 
@@ -122,12 +144,20 @@ func (R *Runtime) CurrentScope() *Scope {
 	return R.Scopes[R.ScopeIndex]
 }
 
+func (R *Runtime) CopyLocals() Locals {
+	new := make(Locals)
+	for k, v := range R.CurrentScope().variables {
+		new[k] = v
+	}
+	return new
+}
+
 func (R *Runtime) CallFunction(function Function, args []Value) (Value, *Error) {
 	R.ScopeIndex++
 	if R.ScopeIndex >= len(R.Scopes) {
 		R.Scopes = append(R.Scopes, nil)
 	}
-	R.Scopes[R.ScopeIndex] = NewScope(R.Scopes[R.ScopeIndex-1].variables)
+	R.Scopes[R.ScopeIndex] = NewScope()
 	val, err := function(R, args)
 	R.ScopeIndex--
 	return val, err

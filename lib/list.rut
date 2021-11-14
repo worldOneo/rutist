@@ -1,0 +1,28 @@
+list = class((def) {
+  def("__init__", (self, val) {
+    self.val = val
+  })
+
+  def("push", (self, val) {
+    if({ isNil(self.next) }, {
+      self.val = val
+      self.next = list(val)
+    }).else({
+      self.next.push(val)
+    })
+  })
+
+  def("get", (self, index) {
+    if({ index == 0 }, {
+      self.val
+    }).elseif({ !isNil(self.next) }, {
+      self.next.get(index-1)
+    }).else({
+      throw("List: Index out of bounds")
+    }).value
+  })
+})
+
+module((export) {
+  export("New", list)
+})

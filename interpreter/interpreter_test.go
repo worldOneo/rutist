@@ -207,12 +207,14 @@ func TestRun_Status(t *testing.T) {
 			a = if({true}, { 1 }).value
 			b = if({false},{ 1 }).elseif({true}, { 2 }).value
 			c = if({false},{ 1 }).elseif({false}, { 2 }).else({ 3 }).value
+			d = if({true}, { 4 }).else({ 5 }).value
 			`))},
 			func(r *Runtime) bool {
 				a := r.GetVar("a")
 				b := r.GetVar("b")
 				c := r.GetVar("c")
-				return a == Int(1) && b == Int(2) && c == Int(3)
+				d := r.GetVar("d")
+				return a == Int(1) && b == Int(2) && c == Int(3) &&  d == Int(4)
 			},
 			false,
 		},
@@ -279,6 +281,24 @@ func TestRun_Abstract(t *testing.T) {
 			func(r *Runtime) bool {
 				t := r.GetVar("test")
 				return t != nil && t.(String) == "name"
+			},
+			false,
+		},
+		{
+			"Capture",
+			args{
+				ast: ast.Parsep(tokens.Lexerp(`
+					init = class((def) {
+						def("clone", (self) { init() })
+					})
+
+					inst = init()
+					test = inst.clone()
+				`)),
+			},
+			func(r *Runtime) bool {
+				t := r.GetVar("test")
+				return t != nil && t.(*Instance).Type() == "class"
 			},
 			false,
 		},

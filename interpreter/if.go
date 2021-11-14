@@ -15,17 +15,21 @@ func init() {
 	ifStateNatives[NativeGetMember] = Function(func(r *Runtime, v []Value) (Value, *Error) {
 		state := v[0].(*ifState)
 		if member, str := v[1].(String); str {
-			if member == "elseif" && !state.fullfilled {
+			if member == "elseif" {
+				if state.fullfilled {
+					return createTrashCan(v[0]), nil
+				}
 				return Function(builtinElse), nil
-			} else if member == "else" && !state.fullfilled {
+			} else if member == "else" {
+				if state.fullfilled {
+					return createTrashCan(v[0]), nil
+				}
 				return Function(func(r *Runtime, v []Value) (Value, *Error) {
 					val, err := builtinRun(r, v[1:])
 					return &ifState{true, val}, err
 				}), nil
 			} else if member == "value" {
 				return state.val, nil
-			} else {
-				return v[0], nil
 			}
 		}
 		return nil, nil

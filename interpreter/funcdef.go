@@ -5,8 +5,9 @@ import "github.com/worldOneo/rutist/ast"
 var funcdefNatives = NativeMap{}
 
 type FuncDef struct {
-	args []ast.Identifier
-	node ast.Node
+	args     []ast.Identifier
+	node     ast.Node
+	captured map[string]Value
 }
 
 func (FuncDef) Type() String {
@@ -24,6 +25,9 @@ func (FuncDef) Natives() NativeMap {
 }
 
 func (F *FuncDef) run(r *Runtime, v []Value) (Value, *Error) {
+	for k, v := range F.captured {
+		r.CurrentScope().variables[k] = v
+	}
 	for i := 0; i < len(F.args); i++ {
 		if i >= len(v) {
 			break

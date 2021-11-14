@@ -171,6 +171,12 @@ func builtinPrint(_ *Runtime, args []Value) (Value, *Error) {
 	return nil, nil
 }
 
+func createTrashCan(res Value) Function {
+	return func(r *Runtime, v []Value) (Value, *Error) {
+		return res, nil
+	}
+}
+
 func goNativeTypes(args []Value) []interface{} {
 	values := make([]interface{}, len(args))
 	for i, arg := range args {

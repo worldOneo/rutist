@@ -7,6 +7,8 @@ type Value interface {
 	Natives() NativeMap
 }
 
+type Locals = map[string]Value
+
 type Scope struct {
-	variables map[string]Value
+	variables Locals
 }
