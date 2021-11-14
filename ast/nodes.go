@@ -6,23 +6,29 @@ import (
 
 type Node interface {
 	Token() tokens.Token
+	File() string
 	SetToken(tokens.Token)
 }
 
 type Meta struct {
 	At tokens.Token
+	F  string
 }
 
 func (M Meta) Token() tokens.Token {
 	return M.At
 }
 
+func (M Meta) File() string {
+	return M.F
+}
+
 func (M *Meta) SetToken(t tokens.Token) {
 	M.At = t
 }
 
-func NewMeta(t tokens.Token) *Meta {
-	return &Meta{t}
+func NewMeta(t tokens.Token, file string) *Meta {
+	return &Meta{t, file}
 }
 
 type Identifier struct {

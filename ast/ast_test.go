@@ -9,7 +9,7 @@ import (
 	"github.com/worldOneo/rutist/tokens"
 )
 
-var meta = &Meta{tokens.Token{}}
+var meta = &Meta{tokens.Token{}, ""}
 
 func TestParse(t *testing.T) {
 	type args struct {
@@ -277,7 +277,7 @@ func TestParse(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := Parse(tt.args.lexed)
+			got, err := Parse(tt.args.lexed, "test.go")
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Parse() error = %v, wantErr %v", err, tt.wantErr)
 				return

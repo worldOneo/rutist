@@ -62,7 +62,7 @@ func builtinImport(r *Runtime, args []Value) (Value, *Error) {
 	if err != nil {
 		return nil, &Error{e}
 	}
-	parsed, e := ast.Parse(tokens)
+	parsed, e := ast.Parse(tokens, file)
 	if err != nil {
 		return nil, &Error{e}
 	}

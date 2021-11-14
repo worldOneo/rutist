@@ -92,7 +92,7 @@ func TestRun_Status(t *testing.T) {
 				if !o {
 					return false
 				}
-				return reflect.DeepEqual(h.args, []ast.Identifier{{"err", ast.NewMeta(tokens.Token{tokens.Identifier, "err", 0, 0, 1})}})
+				return reflect.DeepEqual(h.args, []ast.Identifier{{"err", ast.NewMeta(tokens.Token{tokens.Identifier, "err", 0, 0, 1}, "constant.go")}})
 			},
 			false,
 		},

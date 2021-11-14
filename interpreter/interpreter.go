@@ -52,7 +52,7 @@ func (R *Runtime) Run(program ast.Node) (Value, *Error) {
 		for i := 0; i < len(node.Body); i++ {
 			lastVal, err = R.Run(node.Body[i])
 			if err != nil {
-				return nil, err
+				return nil, R.bindTrace(err, node)
 			}
 		}
 		if lastVal != nil {
@@ -68,7 +68,7 @@ func (R *Runtime) Run(program ast.Node) (Value, *Error) {
 		}
 		val, err := R.Run(node.Value)
 		if err != nil {
-			return nil, err
+			return nil, R.bindTrace(err, node)
 		}
 		if ok {
 			lazy.WakeUp(val)
@@ -77,11 +77,11 @@ func (R *Runtime) Run(program ast.Node) (Value, *Error) {
 	case ast.BinaryExpression:
 		left, err := R.Run(node.Left)
 		if err != nil {
-			return nil, err
+			return nil, R.bindTrace(err, node)
 		}
 		right, err := R.Run(node.Right)
 		if err != nil {
-			return nil, err
+			return nil, R.bindTrace(err, node)
 		}
 		operator := R.getNativeField(left, operatorMagicType[node.Operation])
 		if operator == nil {
@@ -95,7 +95,7 @@ func (R *Runtime) Run(program ast.Node) (Value, *Error) {
 	case ast.UnaryExpression:
 		val, err := R.Run(node.Value)
 		if err != nil {
-			return nil, err
+			return nil, R.bindTrace(err, node)
 		}
 		operator := R.getNativeField(val, operatorMagicType[node.Operation])
 		if operator == nil {
@@ -207,13 +207,13 @@ func (R *Runtime) getMemberProperty(v Value, property ast.Node) (Value, *Error) 
 	case ast.Expression:
 		member, err := R.getMemberProperty(v, prop.Callee)
 		if err != nil {
-			return nil, err
+			return nil, R.bindTrace(err, prop)
 		}
 		return R.invokeValue(member, []Value{})
 	case ast.MemberSelector:
 		member, err := R.getMemberProperty(v, prop.Object)
 		if err != nil {
-			return nil, err
+			return nil, R.bindTrace(err, prop)
 		}
 		return R.getMemberProperty(member, prop.Property)
 	}
@@ -240,7 +240,7 @@ func (R *Runtime) invokeFunction(function Function, args []Value) (Value, *Error
 func (R *Runtime) invokeExpression(node ast.Expression) (Value, *Error) {
 	value, err := R.Run(node.Callee)
 	if err != nil {
-		return nil, err
+		return nil, R.bindTrace(err, node)
 	}
 	runnable := R.getNativeField(value, NativeRun)
 	if runnable == nil {
@@ -252,7 +252,7 @@ func (R *Runtime) invokeExpression(node ast.Expression) (Value, *Error) {
 	}
 	args, err := R.buildArgs(value, node.ArgList)
 	if err != nil {
-		return nil, err
+		return nil, R.bindTrace(err, node)
 	}
 	return R.invokeFunction(function, args)
 }
@@ -272,7 +272,7 @@ func (R *Runtime) invokeValue(value Value, args []Value) (Value, *Error) {
 func (R *Runtime) resolveMemberSelector(node ast.MemberSelector) (Value, *Error) {
 	v, err := R.Run(node.Object)
 	if err != nil {
-		return nil, err
+		return nil, R.bindTrace(err, node)
 	}
 	return R.getMemberProperty(v, node.Property)
 }
@@ -285,7 +285,7 @@ func (R *Runtime) assignValue(val Value, node ast.Node) (Value, *Error) {
 	case ast.MemberSelector:
 		obj, err := R.Run(v.Object)
 		if err != nil {
-			return nil, err
+			return nil, R.bindTrace(err, node)
 		}
 		prop, ok := v.Property.(ast.Identifier)
 		if !ok {
@@ -307,7 +307,7 @@ func (R *Runtime) assignObjectProperty(obj Value, val Value, node ast.Node) (Val
 		}
 		member, err := R.getDynamicMember(obj, String(key.Name))
 		if err != nil {
-			return nil, err
+			return nil, R.bindTrace(err, node)
 		}
 		prop, ok := v.Property.(ast.Identifier)
 		if !ok {
@@ -334,6 +334,10 @@ func (R *Runtime) assignObject(obj Value, val Value, prop Value) (Value, *Error)
 	return R.CallFunction(fn, []Value{assignFn, assign, obj, prop, val})
 }
 
+func (R *Runtime) bindTrace(err *Error, node ast.Node) *Error {
+	return R.error(err.Err.Error(), node)
+}
+
 func (R *Runtime) error(msg string, node ast.Node) *Error {
-	return &Error{fmt.Errorf("%s at %s:%d", msg, R.File, node.Token().Line)}
+	return &Error{fmt.Errorf("%s\n\tat %s:%d", msg, node.File(), node.Token().Line+1)}
 }

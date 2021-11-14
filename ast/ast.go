@@ -13,19 +13,25 @@ type Program = Block
 type Parser struct {
 	tokens []tokens.Token
 	index  int
+	file string
+}
+
+func (P *Parser) Meta(t tokens.Token) *Meta {
+	return NewMeta(t, P.file)
 }
 
 func Parsep(lexed []tokens.Token) Node {
-	val, err := Parse(lexed)
+	val, err := Parse(lexed, "constant.go")
 	if err != nil {
 		panic(err)
 	}
 	return val
 }
 
-func Parse(lexed []tokens.Token) (Node, error) {
+func Parse(lexed []tokens.Token, file string) (Node, error) {
 	parser := Parser{
 		tokens: lexed,
+		file: file,
 	}
 	return parser.parse()
 }
@@ -62,7 +68,7 @@ func (P *Parser) parse() (Node, error) {
 			copy(body, old)
 		}
 	}
-	return Block{body[0:bindex], NewMeta(peek)}, nil
+	return Block{body[0:bindex], P.Meta(peek)}, nil
 }
 
 func (P *Parser) checkAppendage(prev Node) (Node, error) {
@@ -77,28 +83,28 @@ func (P *Parser) checkAppendage(prev Node) (Node, error) {
 		if err != nil {
 			return nil, err
 		}
-		return P.checkAppendage(MemberSelector{prev, val, NewMeta(peek)})
+		return P.checkAppendage(MemberSelector{prev, val, P.Meta(peek)})
 	case tokens.ParenOpen:
 		P.next()
 		args, err := P.argList(false)
 		if err != nil {
 			return nil, err
 		}
-		return P.checkAppendage(Expression{prev, args, NewMeta(peek)})
+		return P.checkAppendage(Expression{prev, args, P.Meta(peek)})
 	case tokens.Assignment:
 		P.next()
 		node, err := P.pullValue()
 		if err != nil {
 			return nil, err
 		}
-		return Assignment{prev, node, NewMeta(peek)}, nil
+		return Assignment{prev, node, P.Meta(peek)}, nil
 	case tokens.OperatorType:
 		P.next()
 		node, err := P.pullValue()
 		if err != nil {
 			return nil, err
 		}
-		return BinaryExpression{peek.ValueInt, prev, node, NewMeta(peek)}, nil
+		return BinaryExpression{peek.ValueInt, prev, node, P.Meta(peek)}, nil
 	}
 	return prev, nil
 }
@@ -166,7 +172,7 @@ func (P *Parser) _pullValue() (Node, error) {
 		if err != nil {
 			return nil, err
 		}
-		return Scope{b, NewMeta(next)}, nil
+		return Scope{b, P.Meta(next)}, nil
 	case tokens.ParenOpen:
 		P.next()
 		args, err := P.argList(true)
@@ -185,7 +191,7 @@ func (P *Parser) _pullValue() (Node, error) {
 		if err != nil {
 			return nil, err
 		}
-		return FunctionDefinition{b, arglist, NewMeta(next)}, nil
+		return FunctionDefinition{b, arglist, P.Meta(next)}, nil
 	case tokens.Identifier:
 		P.next()
 		identifier, err := P.parseIdentifier(next)
@@ -195,23 +201,23 @@ func (P *Parser) _pullValue() (Node, error) {
 		return identifier, nil
 	case tokens.Float:
 		P.next()
-		return Float{next.ValueFloat, NewMeta(next)}, nil
+		return Float{next.ValueFloat, P.Meta(next)}, nil
 	case tokens.Integer:
 		P.next()
-		return Int{next.ValueInt, NewMeta(next)}, nil
+		return Int{next.ValueInt, P.Meta(next)}, nil
 	case tokens.String:
 		P.next()
-		return String{next.Content, NewMeta(next)}, nil
+		return String{next.Content, P.Meta(next)}, nil
 	case tokens.Boolean:
 		P.next()
-		return Bool{next.ValueInt == 1, NewMeta(next)}, nil
+		return Bool{next.ValueInt == 1, P.Meta(next)}, nil
 	case tokens.OperatorType:
 		P.next()
 		val, err := P.pullValue()
 		if err != nil {
 			return nil, err
 		}
-		return UnaryExpression{next.ValueInt, val, NewMeta(next)}, nil
+		return UnaryExpression{next.ValueInt, val, P.Meta(next)}, nil
 	}
 	return nil, fmt.Errorf("Identifier Expected")
 }
@@ -219,7 +225,7 @@ func (P *Parser) _pullValue() (Node, error) {
 func (P *Parser) parseIdentifier(last tokens.Token) (Node, error) {
 	peek, peeked := P.peek()
 	if !peeked {
-		return Identifier{last.Content, NewMeta(last)}, nil
+		return Identifier{last.Content, P.Meta(last)}, nil
 	}
 	switch peek.Type {
 	case tokens.Dot:
@@ -232,7 +238,7 @@ func (P *Parser) parseIdentifier(last tokens.Token) (Node, error) {
 		if err != nil {
 			return nil, err
 		}
-		return MemberSelector{Identifier{last.Content, NewMeta(last)}, node, NewMeta(peek)}, nil
+		return MemberSelector{Identifier{last.Content, P.Meta(last)}, node, P.Meta(peek)}, nil
 	}
-	return Identifier{last.Content, NewMeta(last)}, nil
+	return Identifier{last.Content, P.Meta(last)}, nil
 }
