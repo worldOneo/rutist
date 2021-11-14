@@ -129,5 +129,10 @@ func walkTree(tree Node, f func(node Node)) {
 	case MemberSelector:
 		walkTree(n.Object, f)
 		walkTree(n.Property, f)
+	case BinaryExpression:
+		walkTree(n.Left, f)
+		walkTree(n.Right, f)
+	case UnaryExpression:
+		walkTree(n.Value, f)
 	}
 }

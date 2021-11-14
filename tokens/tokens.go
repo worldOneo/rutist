@@ -35,24 +35,24 @@ const (
 )
 
 const (
-	OperatorAdd Operator = iota
+	OperatorNot Operator = iota
+	OperatorAdd
 	OperatorSub
 	OperatorMul
 	OperatorDiv
 	OperatorMod
+	OperatorLsh
+	OperatorRsh
 	OperatorOr
 	OperatorAnd
 	OperatorXor
-	OperatorLor
-	OperatorLand
-	OperatorNot
 	OperatorEq
 	OperatorLt
 	OperatorLe
 	OperatorGt
 	OperatorGe
-	OperatorLsh
-	OperatorRsh
+	OperatorLor
+	OperatorLand
 )
 
 var operators = map[string]Operator{}

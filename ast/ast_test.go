@@ -9,7 +9,7 @@ import (
 	"github.com/worldOneo/rutist/tokens"
 )
 
-var meta = &Meta{tokens.Token{}, ""}
+var meta = &Meta{tokens.Token{}, "test.go"}
 
 func TestParse(t *testing.T) {
 	type args struct {
@@ -267,6 +267,34 @@ func TestParse(t *testing.T) {
 							meta,
 						},
 						Int{1, meta},
+						meta,
+					},
+				},
+				meta,
+			},
+			false,
+		},
+		{
+			"Calc prority",
+			args{tokens.Lexerp(`
+			a+b*c||d
+			`)},
+			Block{
+				[]Node{
+					BinaryExpression{
+						tokens.OperatorLor,
+						BinaryExpression{
+							tokens.OperatorAdd,
+							Identifier{"a", meta},
+							BinaryExpression{
+								tokens.OperatorMul,
+								Identifier{"b", meta},
+								Identifier{"c", meta},
+								meta,
+							},
+							meta,
+						},
+						Identifier{"d", meta},
 						meta,
 					},
 				},

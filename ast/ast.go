@@ -104,6 +104,13 @@ func (P *Parser) checkAppendage(prev Node) (Node, error) {
 		if err != nil {
 			return nil, err
 		}
+		if bin, ok := node.(BinaryExpression); ok {
+			if bin.Operation > peek.ValueInt {
+				expr := BinaryExpression{peek.ValueInt, prev, bin.Left, P.Meta(peek)}
+				bin.Left = expr
+				return bin, nil
+			}
+		}
 		return BinaryExpression{peek.ValueInt, prev, node, P.Meta(peek)}, nil
 	}
 	return prev, nil

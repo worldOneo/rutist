@@ -18,6 +18,16 @@ func boolWrapUnary(f func(a bool) Value) Function {
 	}
 }
 
+func boolWrapBinary(f func(a, b bool) Value) Function {
+	return func(r *Runtime, v []Value) (Value, *Error) {
+		b, ok := v[1].(Bool)
+		if !ok {
+			return builtinThrow(r, []Value{String("Invalid right hand type")})
+		}
+		return f(bool(v[0].(Bool)), bool(b)), nil
+	}
+}
+
 func init() {
 	boolNatives[NativeBool] = this
 	boolNatives[NativeStr] = Function(func(r *Runtime, v []Value) (Value, *Error) {
@@ -28,4 +38,6 @@ func init() {
 	})
 
 	boolNatives[NativeNot] = boolWrapUnary(func(a bool) Value { return Bool(!a) })
+	boolNatives[NativeLor] = boolWrapBinary(func(a, b bool) Value { return Bool(a || b) })
+	boolNatives[NativeLand] = boolWrapBinary(func(a, b bool) Value { return Bool(a && b) })
 }

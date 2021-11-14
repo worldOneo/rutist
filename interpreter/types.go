@@ -30,6 +30,8 @@ const (
 	NativeLe
 	NativeGt
 	NativeGe
+	NativeLor
+	NativeLand
 	NativeLsh
 	NativeRsh
 )
@@ -81,6 +83,8 @@ func init() {
 	operatorMagicType[tokens.OperatorLe] = NativeLe
 	operatorMagicType[tokens.OperatorGt] = NativeGt
 	operatorMagicType[tokens.OperatorGe] = NativeGe
+	operatorMagicType[tokens.OperatorLor] = NativeLor
+	operatorMagicType[tokens.OperatorLand] = NativeLand
 	operatorMagicType[tokens.OperatorLsh] = NativeLsh
 	operatorMagicType[tokens.OperatorRsh] = NativeRsh
 
